@@ -11,6 +11,24 @@ It does not render Lovelace, does not emulate Home Assistant cards, and does not
 - REST polling only in v1
 - Large touch targets for old 3DS and new 3DS hardware
 
+## Quick Start
+
+Latest release:
+
+- `v0.1.0`: `https://github.com/kylie-grace/homepad-3ds/releases/tag/v0.1.0`
+
+Download:
+
+- `homepad-v0.1.0-3dsx.zip`: `https://github.com/kylie-grace/homepad-3ds/releases/download/v0.1.0/homepad-v0.1.0-3dsx.zip`
+
+Install:
+
+1. Download the release zip.
+2. Copy `homepad.3dsx` to `sdmc:/3ds/homepad/homepad.3dsx`.
+3. Copy `config.template.json` to `sdmc:/3ds/homepad/config.json`.
+4. Edit `config.json` with your Home Assistant URL, token, and entity IDs.
+5. Launch `HomePad` from the Homebrew Launcher.
+
 ## Status
 
 Current state:
