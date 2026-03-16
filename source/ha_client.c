@@ -13,6 +13,7 @@
 #define HA3DS_HTTP_BUFFER 262144
 #define HA3DS_JSON_TOKENS 8192
 #define HTTP_TIMEOUT_NS 8000000000ULL
+#define HTTP_REDIRECT_LIMIT 4
 
 static size_t json_token_span(const jsmntok_t* tokens, int index) {
     size_t span = 1;
@@ -163,54 +164,83 @@ static bool http_download(httpcContext* context, char* output, size_t output_siz
 
     u32 content_size = 0;
     httpcGetDownloadSizeState(context, NULL, &content_size);
-    if (content_size + 1 > output_size) {
-        return false;
+
+    u32 total_read = 0;
+    u32 read_size = 0;
+    u32 chunk_size = content_size > 0 && content_size < output_size ? content_size : 0x1000;
+    if (chunk_size == 0 || chunk_size >= output_size) {
+        chunk_size = output_size - 1;
     }
 
-    u32 downloaded = 0;
-    while (downloaded < content_size) {
-        u32 chunk = content_size - downloaded;
-        rc = httpcDownloadData(context, (u8*)output + downloaded, chunk, &downloaded);
-        if (R_FAILED(rc) && rc != (Result)HTTPC_RESULTCODE_DOWNLOADPENDING) {
+    do {
+        if (total_read + chunk_size >= output_size) {
             return false;
         }
-        if (rc == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING) {
-            svcSleepThread(50 * 1000 * 1000LL);
-        }
+        read_size = 0;
+        rc = httpcDownloadData(context, (u8*)output + total_read, chunk_size, &read_size);
+        total_read += read_size;
+    } while (rc == (Result)HTTPC_RESULTCODE_DOWNLOADPENDING);
+
+    if (R_FAILED(rc)) {
+        return false;
     }
-    output[downloaded] = '\0';
+    output[total_read] = '\0';
     return status >= 200 && status < 300;
 }
 
 static bool http_request_json(const AppState* app, HTTPC_RequestMethod method, const char* path, const char* body, char* output, size_t output_size) {
     httpcContext context;
     char url[HA3DS_STR_URL + HA3DS_STR_MEDIUM];
+    char next_url[HA3DS_STR_URL + HA3DS_STR_MEDIUM];
     char auth[HA3DS_STR_TOKEN + 16];
     Result rc;
     u32 status = 0;
+    int redirects = 0;
 
     snprintf(url, sizeof(url), "%s%s", app->config.base_url, path);
-    rc = httpcOpenContext(&context, method, url, 1);
-    if (R_FAILED(rc)) {
-        return false;
-    }
 
-    httpcSetSSLOpt(&context, SSLCOPT_DisableVerify);
-    snprintf(auth, sizeof(auth), "Bearer %s", app->config.access_token);
-    httpcAddRequestHeaderField(&context, "User-Agent", "HomePad/0.1 (Nintendo 3DS)");
-    httpcAddRequestHeaderField(&context, "Authorization", auth);
-    httpcAddRequestHeaderField(&context, "Accept", "application/json");
-    httpcAddRequestHeaderField(&context, "Connection", "Keep-Alive");
-    if (method != HTTPC_METHOD_GET) {
-        httpcAddRequestHeaderField(&context, "Content-Type", "application/json");
-        if (body && body[0]) {
-            httpcAddPostDataRaw(&context, (const u32*)body, (u32)strlen(body));
+    while (redirects <= HTTP_REDIRECT_LIMIT) {
+        rc = httpcOpenContext(&context, method, url, 1);
+        if (R_FAILED(rc)) {
+            return false;
         }
+
+        httpcSetSSLOpt(&context, SSLCOPT_DisableVerify);
+        httpcSetKeepAlive(&context, HTTPC_KEEPALIVE_ENABLED);
+        snprintf(auth, sizeof(auth), "Bearer %s", app->config.access_token);
+        httpcAddRequestHeaderField(&context, "User-Agent", "HomePad/0.1 (Nintendo 3DS)");
+        httpcAddRequestHeaderField(&context, "Authorization", auth);
+        httpcAddRequestHeaderField(&context, "Accept", "application/json");
+        httpcAddRequestHeaderField(&context, "Connection", "Keep-Alive");
+        if (method != HTTPC_METHOD_GET) {
+            httpcAddRequestHeaderField(&context, "Content-Type", "application/json");
+            if (body && body[0]) {
+                httpcAddPostDataRaw(&context, (const u32*)body, (u32)strlen(body));
+            }
+        }
+
+        bool ok = http_download(&context, output, output_size, &status);
+        if (ok) {
+            httpcCloseContext(&context);
+            return true;
+        }
+
+        if (!((status >= 301 && status <= 303) || (status >= 307 && status <= 308))) {
+            httpcCloseContext(&context);
+            return false;
+        }
+
+        if (R_FAILED(httpcGetResponseHeader(&context, "Location", next_url, sizeof(next_url)))) {
+            httpcCloseContext(&context);
+            return false;
+        }
+
+        httpcCloseContext(&context);
+        snprintf(url, sizeof(url), "%s", next_url);
+        redirects++;
     }
 
-    bool ok = http_download(&context, output, output_size, &status);
-    httpcCloseContext(&context);
-    return ok;
+    return false;
 }
 
 static void set_domain_from_entity(EntityState* entity) {
@@ -398,6 +428,8 @@ bool ha_trigger_entity(AppState* app, const char* entity_id) {
         if (mutable_entity) {
             snprintf(mutable_entity->state, sizeof(mutable_entity->state), "%s", strcmp(entity->state, "on") == 0 ? "off" : "on");
         }
+    } else if (strcmp(entity->domain, "scene") == 0 || strcmp(entity->domain, "script") == 0) {
+        app->store.last_poll_ms = 0;
     }
     app_set_status(app, "Triggered %s", entity->friendly_name);
     return true;

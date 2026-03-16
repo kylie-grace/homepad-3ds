@@ -34,6 +34,32 @@ static const Color C_INFO = {113, 170, 222};
 
 static const char* PAGE_NAMES[PAGE_COUNT] = {"Overview", "Rooms", "People", "Weather", "Quick"};
 
+static void copy_ellipsized(char* dest, size_t dest_size, const char* src, int max_chars) {
+    if (dest_size == 0) {
+        return;
+    }
+    if (!src) {
+        dest[0] = '\0';
+        return;
+    }
+
+    size_t src_len = strlen(src);
+    size_t copy_len = src_len < (size_t)max_chars ? src_len : (size_t)max_chars;
+    if (copy_len >= dest_size) {
+        copy_len = dest_size - 1;
+    }
+
+    memcpy(dest, src, copy_len);
+    dest[copy_len] = '\0';
+
+    if (src_len > (size_t)max_chars && max_chars >= 3 && dest_size >= 4) {
+        dest[max_chars - 3] = '.';
+        dest[max_chars - 2] = '.';
+        dest[max_chars - 1] = '.';
+        dest[max_chars] = '\0';
+    }
+}
+
 static void put_px(Canvas* canvas, int x, int y, Color color) {
     if (x < 0 || y < 0 || x >= canvas->width || y >= canvas->height) {
         return;
@@ -287,9 +313,15 @@ static void draw_entity_button(Canvas* bottom, AppState* app, int x, int y, int 
     const EntityState* entity = app_find_entity(app, entity_id);
     bool focused = app->focused_button == button_index;
     Color panel = focused ? C_ACCENT : C_PANEL;
+    char label[20];
+    char state[20];
+
+    copy_ellipsized(label, sizeof(label), entity ? safe_name(entity, entity_id) : entity_id, 16);
+    copy_ellipsized(state, sizeof(state), entity ? entity->state : "--", 16);
+
     fill_rounded_rect(bottom, x, y, w, h, 8, panel);
-    draw_text(bottom, x + 10, y + 8, entity ? safe_name(entity, entity_id) : entity_id, 1, focused ? C_BG : C_TEXT);
-    draw_text(bottom, x + 10, y + 26, entity ? entity->state : "--", 1, focused ? C_BG : C_SUB);
+    draw_text(bottom, x + 10, y + 8, label, 1, focused ? C_BG : C_TEXT);
+    draw_text(bottom, x + 10, y + 26, state, 1, focused ? C_BG : C_SUB);
     add_button(app, x, y, w, h, ACTION_ENTITY, button_index, entity != NULL);
 }
 
@@ -320,12 +352,29 @@ static void draw_room_bottom(Canvas* bottom, AppState* app) {
         draw_entity_button(bottom, app, x, y, 136, 42, room->control_entities[i], button_index);
     }
     int room_y = 150;
-    for (int i = 0; i < app->config.room_count && i < 4; i++) {
-        int x = 12 + i * 76;
-        bool focused = app->page == PAGE_ROOM && i == app->selected_room;
-        fill_rounded_rect(bottom, x, room_y, 68, 28, 6, focused ? C_ACCENT : C_PANEL);
-        draw_text(bottom, x + 6, room_y + 10, app->config.rooms[i].name, 1, focused ? C_BG : C_TEXT);
-        add_button(app, x, room_y, 68, 28, ACTION_ROOM, i, true);
+    int room_start = (app->selected_room / 4) * 4;
+    const int room_tab_x = 36;
+    const int room_tab_w = 58;
+    const int room_tab_gap = 2;
+    if (app->config.room_count > 4 && room_start > 0) {
+        fill_rounded_rect(bottom, 12, room_y, 20, 28, 6, C_PANEL);
+        draw_text(bottom, 18, room_y + 10, "<", 1, C_TEXT);
+        add_button(app, 12, room_y, 20, 28, ACTION_ROOM, room_start - 1, true);
+    }
+    for (int i = 0; i < 4 && room_start + i < app->config.room_count; i++) {
+        int room_index = room_start + i;
+        int x = room_tab_x + i * (room_tab_w + room_tab_gap);
+        bool focused = app->page == PAGE_ROOM && room_index == app->selected_room;
+        char label[12];
+        copy_ellipsized(label, sizeof(label), app->config.rooms[room_index].name, 8);
+        fill_rounded_rect(bottom, x, room_y, room_tab_w, 28, 6, focused ? C_ACCENT : C_PANEL);
+        draw_text(bottom, x + 6, room_y + 10, label, 1, focused ? C_BG : C_TEXT);
+        add_button(app, x, room_y, room_tab_w, 28, ACTION_ROOM, room_index, true);
+    }
+    if (app->config.room_count > 4 && room_start + 4 < app->config.room_count) {
+        fill_rounded_rect(bottom, 308 - 20, room_y, 20, 28, 6, C_PANEL);
+        draw_text(bottom, 308 - 14, room_y + 10, ">", 1, C_TEXT);
+        add_button(app, 308 - 20, room_y, 20, 28, ACTION_ROOM, room_start + 4, true);
     }
 }
 

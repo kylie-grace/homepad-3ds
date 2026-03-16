@@ -178,8 +178,9 @@ Start here:
 
 1. Read `README.md`
 2. Read this file
-3. Build with `make`
-4. Inspect `source/ui.c` and `source/ha_client.c`
+3. Read `docs/ROADMAP.md`
+4. Build with `make`
+5. Inspect `source/ui.c` and `source/ha_client.c`
 
 When making changes:
 

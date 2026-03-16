@@ -39,6 +39,11 @@ Current state:
 - Basic service calls implemented for `light`, `switch`, `fan`, `scene`, and `script`
 - Build verified locally with current devkitPro `3ds-dev`
 
+Additional project docs:
+
+- `docs/AGENT_HANDOFF.md`
+- `docs/ROADMAP.md`
+
 ## Features
 
 - Overview page with greeting, time, weather, indoor temperature, presence, and whole-home counts
