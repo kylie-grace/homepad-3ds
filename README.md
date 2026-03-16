@@ -2,6 +2,8 @@
 
 HomePad is a native Nintendo 3DS Home Assistant dashboard built with devkitPro and libctru.
 
+Initial implementation and project scaffolding were developed with assistance from OpenAI Codex.
+
 It does not render Lovelace, does not emulate Home Assistant cards, and does not embed a web UI. Instead, it translates the same information priorities into a 3DS-native dual-screen app:
 
 - Top screen for passive status and page summaries
