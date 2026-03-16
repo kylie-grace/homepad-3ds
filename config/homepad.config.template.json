@@ -29,6 +29,7 @@
       "control_entities": [
         "light.living_room_lamp",
         "fan.living_room_fan",
+        "climate.living_room_thermostat",
         "switch.tv_corner",
         "scene.movie_time"
       ],
@@ -43,6 +44,7 @@
       "temp_sensor": "sensor.bedroom_temperature",
       "humidity_sensor": "sensor.bedroom_humidity",
       "control_entities": [
+        "climate.bedroom_thermostat",
         "fan.bedroom_fan",
         "light.bedroom_lamp",
         "scene.goodnight"

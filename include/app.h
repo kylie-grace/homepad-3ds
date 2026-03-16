@@ -12,7 +12,7 @@
 #define HA3DS_MAX_ROOM_HIGHLIGHTS 6
 #define HA3DS_MAX_QUICK_ACTIONS 12
 #define HA3DS_MAX_FAVORITES 8
-#define HA3DS_MAX_UI_BUTTONS 28
+#define HA3DS_MAX_UI_BUTTONS 48
 
 #define HA3DS_STR_SMALL 32
 #define HA3DS_STR_MEDIUM 64
@@ -58,16 +58,22 @@ typedef struct {
     char condition[HA3DS_STR_SMALL];
     char next_rising[HA3DS_STR_SMALL];
     char next_setting[HA3DS_STR_SMALL];
+    char hvac_modes[6][16];
+    int hvac_mode_count;
     bool is_available;
     bool has_numeric_state;
     float numeric_state;
     float temperature;
+    float target_temperature;
     float feels_like;
     float humidity;
     float high;
     float low;
     float wind_speed;
     float precipitation_chance;
+    float min_temp;
+    float max_temp;
+    float target_temp_step;
 } EntityState;
 
 typedef struct {
@@ -92,7 +98,9 @@ typedef enum {
     ACTION_PAGE,
     ACTION_ROOM,
     ACTION_ENTITY,
-    ACTION_QUICK
+    ACTION_QUICK,
+    ACTION_CLIMATE_DOWN,
+    ACTION_CLIMATE_UP
 } ActionType;
 
 typedef struct {
@@ -122,6 +130,7 @@ typedef struct {
 bool config_load(AppConfig* config, const char* path);
 bool ha_poll_states(AppState* app);
 bool ha_trigger_entity(AppState* app, const char* entity_id);
+bool ha_climate_adjust(AppState* app, const char* entity_id, int direction);
 const EntityState* app_find_entity(const AppState* app, const char* entity_id);
 EntityState* app_find_entity_mut(AppState* app, const char* entity_id);
 int app_count_domain_state(const AppState* app, const char* domain, const char* desired_state);

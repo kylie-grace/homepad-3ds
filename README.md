@@ -15,11 +15,11 @@ It does not render Lovelace, does not emulate Home Assistant cards, and does not
 
 Latest release:
 
-- `v0.1.0`: `https://github.com/kylie-grace/homepad-3ds/releases/tag/v0.1.0`
+- `v0.2.0`: `https://github.com/kylie-grace/homepad-3ds/releases/tag/v0.2.0`
 
 Download:
 
-- `homepad-v0.1.0-3dsx.zip`: `https://github.com/kylie-grace/homepad-3ds/releases/download/v0.1.0/homepad-v0.1.0-3dsx.zip`
+- `homepad-v0.2.0-3dsx.zip`: `https://github.com/kylie-grace/homepad-3ds/releases/download/v0.2.0/homepad-v0.2.0-3dsx.zip`
 
 Install:
 
@@ -36,7 +36,7 @@ Current state:
 - Native UI shell implemented
 - Config-driven pages implemented
 - Home Assistant REST polling implemented
-- Basic service calls implemented for `light`, `switch`, `fan`, `scene`, and `script`
+- Basic service calls implemented for `light`, `switch`, `fan`, `scene`, `script`, and `climate`
 - Build verified locally with current devkitPro `3ds-dev`
 
 Additional project docs:
@@ -52,6 +52,8 @@ Additional project docs:
 - Weather page for current conditions, high/low, wind, and sunrise/sunset
 - Quick actions page for scenes, scripts, and favorite toggles
 - Touch, D-pad, and button navigation
+- Climate buttons with mode cycling and touch `-` / `+` target adjustments
+- Domain-colored control badges for faster scanning
 - Dark modern panel-based aesthetic inspired by Home Assistant dashboards without copying Lovelace layout
 
 ## Project Layout
@@ -167,6 +169,11 @@ Room object fields:
 - `X`: force refresh
 - `START`: exit
 
+Climate interaction:
+
+- Tap the main climate button to cycle HVAC mode
+- Tap the small `-` / `+` controls on a climate tile to adjust target temperature
+
 ## Supported Domains
 
 Fully actionable in v1:
@@ -176,6 +183,7 @@ Fully actionable in v1:
 - `fan`
 - `scene`
 - `script`
+- `climate`
 
 Read-only in v1:
 
@@ -183,7 +191,6 @@ Read-only in v1:
 - `sensor`
 - `binary_sensor`
 - `person`
-- `climate`
 - `media_player`
 
 ## Design Translation
@@ -212,11 +219,11 @@ HomePad intentionally re-composes them for 3DS constraints:
 - Base URLs are normalized to avoid trailing-slash mistakes
 - Poll interval is clamped for safer battery and network behavior
 - HTTPS certificate verification is currently disabled for local-network practicality
+- Climate mode and target temperature changes trigger a fast follow-up refresh
 
 ## Limitations
 
 - No websocket updates in v1
-- No climate control actions yet
 - No camera snapshots yet
 - No real icon pack yet
 - Uses a built-in bitmap font and simple software UI primitives
@@ -226,14 +233,7 @@ HomePad intentionally re-composes them for 3DS constraints:
 
 ## Roadmap
 
-- Climate controls and preset actions
-- Utility pages for traffic, printers, and media
-- Sparklines and trend views
-- Camera snapshot support
-- Theme customization
-- Faster partial refresh
-- Websocket mode
-- Better icons and typography
+See `docs/ROADMAP.md`.
 
 ## Publishing Notes
 

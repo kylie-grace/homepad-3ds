@@ -38,7 +38,9 @@ Implemented:
 - Weather page
 - Quick actions page
 - REST polling via Home Assistant `/api/states`
-- Basic service calls for `light`, `switch`, `fan`, `scene`, `script`
+- Basic service calls for `light`, `switch`, `fan`, `scene`, `script`, `climate`
+- Climate mode cycling and target temperature adjustment
+- Domain-colored button badges and control polish
 - MIT license
 - Public GitHub repo created and pushed
 
@@ -129,6 +131,11 @@ Current input behavior:
 - `X` force refresh
 - `START` exit
 
+Climate behavior:
+
+- Main climate tile action cycles HVAC mode
+- Small `-` / `+` touch targets on climate tiles adjust target temperature
+
 ## Important Product Decisions
 
 - HomePad is inspired by the user’s Home Assistant dashboard information architecture, not its exact layout
@@ -164,13 +171,11 @@ The remote was switched to HTTPS because GitHub CLI auth worked but SSH push fai
 
 High-value next steps:
 
-1. Add climate actions for common thermostat adjustments
-2. Add utility pages for printers, traffic, or media
-3. Improve text/layout truncation for long entity names
-4. Add optional icons or domain glyphs
-5. Add screenshot assets and polish repo presentation
-6. Add CI or at least documented release packaging steps
-7. Test on real hardware and adjust touch target sizing if needed
+1. Add utility pages for printers, traffic, or media
+2. Deepen climate support with presets and richer mode handling
+3. Add screenshot assets and polish repo presentation
+4. Add CI or at least documented release packaging steps
+5. Test on real hardware and adjust touch target sizing if needed
 
 ## If Another Agent Picks This Up
 

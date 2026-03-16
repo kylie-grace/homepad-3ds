@@ -23,20 +23,7 @@ Highest priority:
 - Confirm touch target sizing and text readability on-device
 - Validate room/action flows with a real Home Assistant instance
 
-### 2. Climate Controls
-
-Target:
-
-- Add practical `climate` actions without making the UI fragile
-
-Likely scope:
-
-- `climate.turn_off`
-- `climate.set_hvac_mode`
-- simple preset or mode cycling
-- optional temperature up/down controls
-
-### 3. Utility Pages
+### 2. Utility Pages
 
 Target:
 
@@ -49,7 +36,7 @@ Likely additions:
 - traffic/commute page
 - generic utility page fed by config entities
 
-### 4. Better Presentation
+### 3. Better Presentation
 
 Target:
 
@@ -62,7 +49,7 @@ Likely additions:
 - stronger selected-state visuals
 - optional compact status rows
 
-### 5. Better Home Assistant Data Handling
+### 4. Better Home Assistant Data Handling
 
 Target:
 
@@ -72,11 +59,11 @@ Likely additions:
 
 - richer weather attribute parsing
 - better media player summaries
-- climate attribute parsing
+- deeper climate attribute parsing and presets
 - service-specific success/error messages
 - partial refresh strategies
 
-### 6. Live Updates
+### 5. Live Updates
 
 Target:
 
@@ -102,7 +89,7 @@ Likely additions:
 Recommended order:
 
 1. Real hardware validation
-2. Climate controls
-3. Utility pages
-4. UI/icon polish
+2. Utility pages
+3. UI/icon polish
+4. Better HA data depth
 5. Websocket/live updates

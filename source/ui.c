@@ -31,6 +31,10 @@ static const Color C_WARM = {217, 196, 139};
 static const Color C_GOOD = {140, 202, 145};
 static const Color C_WARN = {225, 148, 146};
 static const Color C_INFO = {113, 170, 222};
+static const Color C_COOL = {121, 180, 235};
+static const Color C_SCENE = {195, 145, 224};
+static const Color C_SWITCH = {154, 206, 173};
+static const Color C_SENSOR = {220, 182, 119};
 
 static const char* PAGE_NAMES[PAGE_COUNT] = {"Overview", "Rooms", "People", "Weather", "Quick"};
 
@@ -116,6 +120,49 @@ static void draw_text(Canvas* canvas, int x, int y, const char* text, int scale,
 static void draw_status_pill(Canvas* canvas, int x, int y, const char* text, Color bg, Color fg) {
     fill_rounded_rect(canvas, x, y, 90, 20, 7, bg);
     draw_text(canvas, x + 8, y + 6, text, 1, fg);
+}
+
+static Color domain_color(const EntityState* entity) {
+    if (!entity) return C_PANEL_ALT;
+    if (strcmp(entity->domain, "light") == 0) return C_WARM;
+    if (strcmp(entity->domain, "switch") == 0) return C_SWITCH;
+    if (strcmp(entity->domain, "fan") == 0) return C_GOOD;
+    if (strcmp(entity->domain, "climate") == 0) return C_COOL;
+    if (strcmp(entity->domain, "scene") == 0 || strcmp(entity->domain, "script") == 0) return C_SCENE;
+    if (strcmp(entity->domain, "sensor") == 0 || strcmp(entity->domain, "binary_sensor") == 0) return C_SENSOR;
+    if (strcmp(entity->domain, "weather") == 0) return C_ACCENT;
+    return C_INFO;
+}
+
+static const char* domain_tag(const EntityState* entity) {
+    if (!entity) return "--";
+    if (strcmp(entity->domain, "light") == 0) return "LT";
+    if (strcmp(entity->domain, "switch") == 0) return "SW";
+    if (strcmp(entity->domain, "fan") == 0) return "FN";
+    if (strcmp(entity->domain, "climate") == 0) return "CL";
+    if (strcmp(entity->domain, "scene") == 0) return "SC";
+    if (strcmp(entity->domain, "script") == 0) return "SR";
+    if (strcmp(entity->domain, "sensor") == 0) return "SN";
+    if (strcmp(entity->domain, "binary_sensor") == 0) return "BN";
+    if (strcmp(entity->domain, "media_player") == 0) return "MD";
+    if (strcmp(entity->domain, "person") == 0) return "PR";
+    return "ET";
+}
+
+static void climate_summary(const EntityState* entity, char* out, size_t out_size) {
+    char raw[48];
+    if (!entity) {
+        snprintf(out, out_size, "--");
+        return;
+    }
+    if (entity->target_temperature > -9000.0f && entity->temperature > -9000.0f) {
+        snprintf(raw, sizeof(raw), "%s %.0f/%.0f", entity->state, entity->target_temperature, entity->temperature);
+    } else if (entity->target_temperature > -9000.0f) {
+        snprintf(raw, sizeof(raw), "%s %.0f", entity->state, entity->target_temperature);
+    } else {
+        snprintf(raw, sizeof(raw), "%s", entity->state);
+    }
+    copy_ellipsized(out, out_size, raw, 16);
 }
 
 static void draw_panel_label(Canvas* canvas, int x, int y, const char* title, const char* value, const char* subtext, Color panel, Color accent) {
@@ -313,16 +360,32 @@ static void draw_entity_button(Canvas* bottom, AppState* app, int x, int y, int 
     const EntityState* entity = app_find_entity(app, entity_id);
     bool focused = app->focused_button == button_index;
     Color panel = focused ? C_ACCENT : C_PANEL;
+    Color accent = domain_color(entity);
     char label[20];
-    char state[20];
+    char state[24];
 
     copy_ellipsized(label, sizeof(label), entity ? safe_name(entity, entity_id) : entity_id, 16);
-    copy_ellipsized(state, sizeof(state), entity ? entity->state : "--", 16);
+    if (entity && strcmp(entity->domain, "climate") == 0) {
+        climate_summary(entity, state, sizeof(state));
+    } else {
+        copy_ellipsized(state, sizeof(state), entity ? entity->state : "--", 16);
+    }
 
     fill_rounded_rect(bottom, x, y, w, h, 8, panel);
-    draw_text(bottom, x + 10, y + 8, label, 1, focused ? C_BG : C_TEXT);
-    draw_text(bottom, x + 10, y + 26, state, 1, focused ? C_BG : C_SUB);
+    fill_rounded_rect(bottom, x + 6, y + 8, 20, 12, 4, focused ? C_BG : accent);
+    draw_text(bottom, x + 10, y + 10, domain_tag(entity), 1, focused ? accent : C_BG);
+    draw_text(bottom, x + 32, y + 8, label, 1, focused ? C_BG : C_TEXT);
+    draw_text(bottom, x + 32, y + 26, state, 1, focused ? C_BG : C_SUB);
     add_button(app, x, y, w, h, ACTION_ENTITY, button_index, entity != NULL);
+
+    if (entity && strcmp(entity->domain, "climate") == 0) {
+        fill_rounded_rect(bottom, x + w - 42, y + 6, 16, 14, 4, focused ? C_BG : C_COOL);
+        fill_rounded_rect(bottom, x + w - 22, y + 6, 16, 14, 4, focused ? C_BG : C_COOL);
+        draw_text(bottom, x + w - 38, y + 9, "-", 1, focused ? C_COOL : C_BG);
+        draw_text(bottom, x + w - 18, y + 9, "+", 1, focused ? C_COOL : C_BG);
+        add_button(app, x + w - 42, y + 6, 16, 14, ACTION_CLIMATE_DOWN, button_index, true);
+        add_button(app, x + w - 22, y + 6, 16, 14, ACTION_CLIMATE_UP, button_index, true);
+    }
 }
 
 static void draw_overview_bottom(Canvas* bottom, AppState* app) {
@@ -401,7 +464,7 @@ static void draw_quick_bottom(Canvas* bottom, AppState* app) {
 }
 
 static const char* action_entity_id(const AppState* app, const UiButton* button) {
-    if (button->type != ACTION_ENTITY) {
+    if (button->type != ACTION_ENTITY && button->type != ACTION_CLIMATE_DOWN && button->type != ACTION_CLIMATE_UP) {
         return NULL;
     }
     if (app->page == PAGE_OVERVIEW && button->value < app->config.favorite_count) {
@@ -414,6 +477,19 @@ static const char* action_entity_id(const AppState* app, const UiButton* button)
         return app->config.quick_action_entities[button->value];
     }
     return NULL;
+}
+
+static bool focused_climate_entity(const AppState* app) {
+    if (app->focused_button < 0 || app->focused_button >= app->button_count) {
+        return false;
+    }
+    const UiButton* button = &app->buttons[app->focused_button];
+    const char* entity_id = action_entity_id(app, button);
+    if (!entity_id) {
+        return false;
+    }
+    const EntityState* entity = app_find_entity(app, entity_id);
+    return entity && strcmp(entity->domain, "climate") == 0;
 }
 
 static void perform_button(AppState* app, int index) {
@@ -436,6 +512,20 @@ static void perform_button(AppState* app, int index) {
             const char* entity_id = action_entity_id(app, button);
             if (entity_id) {
                 ha_trigger_entity(app, entity_id);
+            }
+            break;
+        }
+        case ACTION_CLIMATE_DOWN: {
+            const char* entity_id = action_entity_id(app, button);
+            if (entity_id) {
+                ha_climate_adjust(app, entity_id, -1);
+            }
+            break;
+        }
+        case ACTION_CLIMATE_UP: {
+            const char* entity_id = action_entity_id(app, button);
+            if (entity_id) {
+                ha_climate_adjust(app, entity_id, 1);
             }
             break;
         }
@@ -469,7 +559,6 @@ void ui_handle_input(AppState* app, u32 keys_down, u32 keys_held, touchPosition*
     if (keys_down & KEY_A) {
         perform_button(app, app->focused_button);
     }
-
     if (keys_held & KEY_TOUCH) {
         for (int i = 0; i < app->button_count; i++) {
             UiButton* button = &app->buttons[i];
@@ -519,5 +608,9 @@ void ui_render(AppState* app) {
 
     fill_rect(&bottom, 0, 232, bottom.width, 8, C_PANEL_ALT);
     draw_text(&bottom, 8, 233, app->status_line[0] ? app->status_line : "Ready", 1, C_SUB);
-    draw_text(&bottom, 222, 233, "X Refresh", 1, C_INFO);
+    if (focused_climate_entity(app)) {
+        draw_text(&bottom, 178, 233, "A Mode +/- Touch", 1, C_INFO);
+    } else {
+        draw_text(&bottom, 222, 233, "X Refresh", 1, C_INFO);
+    }
 }

@@ -76,12 +76,30 @@ static float json_to_float(const char* json, const jsmntok_t* token, float fallb
 static void entity_reset(EntityState* entity) {
     memset(entity, 0, sizeof(*entity));
     entity->temperature = -9999.0f;
+    entity->target_temperature = -9999.0f;
     entity->feels_like = -9999.0f;
     entity->humidity = -9999.0f;
     entity->high = -9999.0f;
     entity->low = -9999.0f;
     entity->wind_speed = -9999.0f;
     entity->precipitation_chance = -9999.0f;
+    entity->min_temp = -9999.0f;
+    entity->max_temp = -9999.0f;
+    entity->target_temp_step = 1.0f;
+}
+
+static void parse_string_array_attr(const char* json, const jsmntok_t* tokens, int array_index, char items[][16], int max_items, int* out_count) {
+    *out_count = 0;
+    if (array_index < 0 || tokens[array_index].type != JSMN_ARRAY) {
+        return;
+    }
+    int cursor = array_index + 1;
+    int limit = tokens[array_index].size < max_items ? tokens[array_index].size : max_items;
+    for (int i = 0; i < limit; i++) {
+        json_copy_string(json, &tokens[cursor], items[i], 16);
+        (*out_count)++;
+        cursor += (int)json_token_span(tokens, cursor);
+    }
 }
 
 const EntityState* app_find_entity(const AppState* app, const char* entity_id) {
@@ -282,9 +300,21 @@ static void parse_attributes(const char* json, const jsmntok_t* tokens, int attr
     idx = json_find_key(json, tokens, attr_index, "device_class");
     if (idx >= 0) json_copy_string(json, &tokens[idx], entity->device_class, sizeof(entity->device_class));
     idx = json_find_key(json, tokens, attr_index, "temperature");
-    if (idx >= 0) entity->temperature = json_to_float(json, &tokens[idx], entity->temperature);
+    if (idx >= 0) {
+        if (strcmp(entity->domain, "climate") == 0) {
+            entity->target_temperature = json_to_float(json, &tokens[idx], entity->target_temperature);
+        } else {
+            entity->temperature = json_to_float(json, &tokens[idx], entity->temperature);
+        }
+    }
     idx = json_find_key(json, tokens, attr_index, "current_temperature");
     if (idx >= 0) entity->temperature = json_to_float(json, &tokens[idx], entity->temperature);
+    idx = json_find_key(json, tokens, attr_index, "target_temp_step");
+    if (idx >= 0) entity->target_temp_step = json_to_float(json, &tokens[idx], entity->target_temp_step);
+    idx = json_find_key(json, tokens, attr_index, "min_temp");
+    if (idx >= 0) entity->min_temp = json_to_float(json, &tokens[idx], entity->min_temp);
+    idx = json_find_key(json, tokens, attr_index, "max_temp");
+    if (idx >= 0) entity->max_temp = json_to_float(json, &tokens[idx], entity->max_temp);
     idx = json_find_key(json, tokens, attr_index, "feels_like_temperature");
     if (idx >= 0) entity->feels_like = json_to_float(json, &tokens[idx], entity->feels_like);
     idx = json_find_key(json, tokens, attr_index, "humidity");
@@ -297,6 +327,8 @@ static void parse_attributes(const char* json, const jsmntok_t* tokens, int attr
     if (idx >= 0) json_copy_string(json, &tokens[idx], entity->next_rising, sizeof(entity->next_rising));
     idx = json_find_key(json, tokens, attr_index, "next_setting");
     if (idx >= 0) json_copy_string(json, &tokens[idx], entity->next_setting, sizeof(entity->next_setting));
+    idx = json_find_key(json, tokens, attr_index, "hvac_modes");
+    parse_string_array_attr(json, tokens, idx, entity->hvac_modes, 6, &entity->hvac_mode_count);
     idx = json_find_key(json, tokens, attr_index, "forecast");
     parse_forecast(json, tokens, idx, entity);
 }
@@ -393,6 +425,71 @@ static const char* resolve_service(const char* domain) {
     return NULL;
 }
 
+static bool ha_call_service(AppState* app, const char* domain, const char* service, const char* body) {
+    char path[HA3DS_STR_MEDIUM];
+    char response[2048];
+    snprintf(path, sizeof(path), "/api/services/%s/%s", domain, service);
+    return http_request_json(app, HTTPC_METHOD_POST, path, body, response, sizeof(response));
+}
+
+static bool climate_cycle_mode(AppState* app, const EntityState* entity) {
+    if (entity->hvac_mode_count <= 0) {
+        return false;
+    }
+
+    int next_index = 0;
+    for (int i = 0; i < entity->hvac_mode_count; i++) {
+        if (strcmp(entity->hvac_modes[i], entity->state) == 0) {
+            next_index = (i + 1) % entity->hvac_mode_count;
+            break;
+        }
+    }
+
+    char body[HA3DS_STR_MEDIUM + 48];
+    snprintf(body, sizeof(body), "{\"entity_id\":\"%s\",\"hvac_mode\":\"%s\"}", entity->entity_id, entity->hvac_modes[next_index]);
+    if (!ha_call_service(app, "climate", "set_hvac_mode", body)) {
+        return false;
+    }
+
+    EntityState* mutable_entity = app_find_entity_mut(app, entity->entity_id);
+    if (mutable_entity) {
+        snprintf(mutable_entity->state, sizeof(mutable_entity->state), "%s", entity->hvac_modes[next_index]);
+    }
+    app->store.last_poll_ms = 0;
+    app_set_status(app, "Climate mode -> %s", entity->hvac_modes[next_index]);
+    return true;
+}
+
+static bool climate_adjust_target(AppState* app, const EntityState* entity, float delta) {
+    float step = entity->target_temp_step > 0.0f ? entity->target_temp_step : 1.0f;
+    float target = entity->target_temperature > -9000.0f ? entity->target_temperature : entity->temperature;
+    if (target <= -9000.0f) {
+        return false;
+    }
+
+    target += delta * step;
+    if (entity->min_temp > -9000.0f && target < entity->min_temp) {
+        target = entity->min_temp;
+    }
+    if (entity->max_temp > -9000.0f && target > entity->max_temp) {
+        target = entity->max_temp;
+    }
+
+    char body[HA3DS_STR_MEDIUM + 64];
+    snprintf(body, sizeof(body), "{\"entity_id\":\"%s\",\"temperature\":%.1f}", entity->entity_id, target);
+    if (!ha_call_service(app, "climate", "set_temperature", body)) {
+        return false;
+    }
+
+    EntityState* mutable_entity = app_find_entity_mut(app, entity->entity_id);
+    if (mutable_entity) {
+        mutable_entity->target_temperature = target;
+    }
+    app->store.last_poll_ms = 0;
+    app_set_status(app, "Climate target -> %.1f", target);
+    return true;
+}
+
 bool ha_trigger_entity(AppState* app, const char* entity_id) {
     const EntityState* entity = app_find_entity(app, entity_id);
     if (!entity) {
@@ -402,6 +499,15 @@ bool ha_trigger_entity(AppState* app, const char* entity_id) {
     if (app->service_busy) {
         app_set_status(app, "Action already in progress");
         return false;
+    }
+    if (strcmp(entity->domain, "climate") == 0) {
+        app->service_busy = true;
+        bool ok = climate_cycle_mode(app, entity);
+        app->service_busy = false;
+        if (!ok) {
+            app_set_status(app, "Climate mode change failed");
+        }
+        return ok;
     }
     const char* service = resolve_service(entity->domain);
     if (!service) {
@@ -433,4 +539,24 @@ bool ha_trigger_entity(AppState* app, const char* entity_id) {
     }
     app_set_status(app, "Triggered %s", entity->friendly_name);
     return true;
+}
+
+bool ha_climate_adjust(AppState* app, const char* entity_id, int direction) {
+    const EntityState* entity = app_find_entity(app, entity_id);
+    if (!entity || strcmp(entity->domain, "climate") != 0) {
+        app_set_status(app, "Climate entity not loaded");
+        return false;
+    }
+    if (app->service_busy) {
+        app_set_status(app, "Action already in progress");
+        return false;
+    }
+
+    app->service_busy = true;
+    bool ok = climate_adjust_target(app, entity, direction < 0 ? -1.0f : 1.0f);
+    app->service_busy = false;
+    if (!ok) {
+        app_set_status(app, "Climate temp change failed");
+    }
+    return ok;
 }
