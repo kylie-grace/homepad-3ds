@@ -1,0 +1,85 @@
+{
+  "home_assistant_url": "https://homeassistant.local:8123",
+  "access_token": "PASTE_LONG_LIVED_ACCESS_TOKEN_HERE",
+  "display_name": "Kylie-Grace",
+  "poll_interval_seconds": 15,
+  "weather_entity": "weather.home",
+  "indoor_temp_entity": "sensor.indoor_temperature",
+  "people_entities": [
+    "person.kylie_grace",
+    "person.emily"
+  ],
+  "favorite_entities": [
+    "light.living_room_lamp",
+    "switch.printer_power",
+    "fan.bedroom_fan",
+    "scene.goodnight"
+  ],
+  "quick_action_entities": [
+    "scene.movie_time",
+    "scene.goodnight",
+    "script.toggle_printers",
+    "light.outdoor_string_lights"
+  ],
+  "rooms": [
+    {
+      "name": "Living",
+      "temp_sensor": "sensor.living_room_temperature",
+      "humidity_sensor": "sensor.living_room_humidity",
+      "control_entities": [
+        "light.living_room_lamp",
+        "fan.living_room_fan",
+        "switch.tv_corner",
+        "scene.movie_time"
+      ],
+      "highlight_entities": [
+        "sensor.living_room_temperature",
+        "sensor.living_room_humidity",
+        "media_player.living_room_tv"
+      ]
+    },
+    {
+      "name": "Bedroom",
+      "temp_sensor": "sensor.bedroom_temperature",
+      "humidity_sensor": "sensor.bedroom_humidity",
+      "control_entities": [
+        "fan.bedroom_fan",
+        "light.bedroom_lamp",
+        "scene.goodnight"
+      ],
+      "highlight_entities": [
+        "sensor.bedroom_temperature",
+        "sensor.bedroom_humidity"
+      ]
+    },
+    {
+      "name": "Outdoors",
+      "temp_sensor": "sensor.outdoor_temperature",
+      "humidity_sensor": "sensor.outdoor_humidity",
+      "control_entities": [
+        "light.porch_light",
+        "light.string_lights"
+      ],
+      "highlight_entities": [
+        "sensor.outdoor_temperature",
+        "sensor.outdoor_humidity",
+        "binary_sensor.driveway_motion"
+      ]
+    },
+    {
+      "name": "Office",
+      "temp_sensor": "sensor.office_temperature",
+      "humidity_sensor": "sensor.office_humidity",
+      "control_entities": [
+        "switch.printer_power",
+        "switch.resin_printer_vent",
+        "script.preheat_printers"
+      ],
+      "highlight_entities": [
+        "sensor.office_temperature",
+        "sensor.office_humidity",
+        "binary_sensor.printer_job_active"
+      ]
+    }
+  ]
+}
