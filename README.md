@@ -21,6 +21,12 @@ Download:
 
 - `homepad-v0.2.0-3dsx.zip`: `https://github.com/kylie-grace/homepad-3ds/releases/download/v0.2.0/homepad-v0.2.0-3dsx.zip`
 
+QR install link:
+
+![HomePad v0.2.0 QR](docs/assets/homepad-v0.2.0-qr.png)
+
+- Scan on 3DS: `https://github.com/kylie-grace/homepad-3ds/releases/download/v0.2.0/homepad-v0.2.0-3dsx.zip`
+
 Install:
 
 1. Download the release zip.
