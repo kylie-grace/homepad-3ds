@@ -31,7 +31,7 @@ Install:
 
 1. Download the release zip.
 2. Copy `homepad.3dsx` to `sdmc:/3ds/homepad/homepad.3dsx`.
-3. Copy `config.template.json` to `sdmc:/3ds/homepad/config.json`.
+3. Copy `config/homepad.config.template.json` to `sdmc:/3ds/homepad/config.json`.
 4. Edit `config.json` with your Home Assistant URL, token, and entity IDs.
 5. Launch `HomePad` from the Homebrew Launcher.
 
@@ -48,6 +48,7 @@ Current state:
 Additional project docs:
 
 - `docs/AGENT_HANDOFF.md`
+- `docs/BUILD.md`
 - `docs/ROADMAP.md`
 
 ## Features
@@ -149,6 +150,13 @@ Field reference:
 - `quick_action_entities`: Quick actions page entities
 - `rooms`: List of room objects
 
+Security guidance:
+
+- Use a dedicated Home Assistant long-lived access token for this app
+- Keep the 3DS and its SD card on a trusted network and in trusted hands
+- Rotate the token if the device or SD card is lost, shared, or repurposed
+- HTTPS certificate verification is currently disabled, so do not treat this as safe on hostile or public networks
+
 Room object fields:
 
 - `name`: Short room label
@@ -225,7 +233,15 @@ HomePad intentionally re-composes them for 3DS constraints:
 - Base URLs are normalized to avoid trailing-slash mistakes
 - Poll interval is clamped for safer battery and network behavior
 - HTTPS certificate verification is currently disabled for local-network practicality
+- HTTP requests use an 8 second timeout and run inline, so a slow or unreachable Home Assistant instance can temporarily affect responsiveness
+- State polling caches up to `256` entities from `/api/states`; larger installs will not be fully represented yet
 - Climate mode and target temperature changes trigger a fast follow-up refresh
+
+## Validation
+
+- Local builds are reproducible with devkitPro; see `docs/BUILD.md`
+- No CI workflow is checked in yet, so release verification is still manual
+- The expected manual verification flow is: build with `make`, copy to SD, then validate polling and service calls against a real Home Assistant instance
 
 ## Limitations
 
@@ -246,4 +262,4 @@ See `docs/ROADMAP.md`.
 - Repo name: `homepad-3ds`
 - App name: `HomePad`
 - The codebase is ready for a public repository
-- A license file has not been added yet, so choose one before publishing if you want reuse rights to be explicit
+- `LICENSE` is present and the project is released under MIT

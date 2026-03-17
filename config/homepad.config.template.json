@@ -1,6 +1,6 @@
 {
   "home_assistant_url": "https://homeassistant.local:8123",
-  "access_token": "PASTE_LONG_LIVED_ACCESS_TOKEN_HERE",
+  "access_token": "PASTE_DEDICATED_LONG_LIVED_ACCESS_TOKEN_HERE",
   "display_name": "Kylie-Grace",
   "poll_interval_seconds": 15,
   "weather_entity": "weather.home",

@@ -78,6 +78,7 @@ The project Makefile is aligned to current devkitPro layout and includes:
 
 - `Makefile`
 - `README.md`
+- `docs/BUILD.md`
 - `LICENSE`
 - `config/homepad.config.template.json`
 - `include/app.h`
@@ -111,6 +112,8 @@ Important implementation notes:
 - uses `httpc`
 - POST support requires HTTP shared memory, allocated in `source/main.c`
 - HTTPS certificate verification is currently disabled
+- request timeout is `8s`
+- polling caches up to `256` entities per refresh
 - request timeout handling was added
 - polling/action failures are surfaced in the UI status line instead of crashing
 
@@ -158,7 +161,6 @@ The remote was switched to HTTPS because GitHub CLI auth worked but SSH push fai
 
 ## Known Limitations
 
-- `climate` is read-only
 - `media_player` is read-only
 - no websocket updates
 - no theme customization
@@ -166,6 +168,8 @@ The remote was switched to HTTPS because GitHub CLI auth worked but SSH push fai
 - no camera snapshots
 - weather detail depends on available HA entity attributes
 - sunrise/sunset currently read from `sun.sun`
+- synchronous polling can temporarily affect responsiveness on slow or offline networks
+- HTTPS certificate verification is disabled, so trusted-LAN assumptions should remain explicit in docs and releases
 
 ## Recommended Next Work
 
@@ -184,8 +188,9 @@ Start here:
 1. Read `README.md`
 2. Read this file
 3. Read `docs/ROADMAP.md`
-4. Build with `make`
-5. Inspect `source/ui.c` and `source/ha_client.c`
+4. Read `docs/BUILD.md`
+5. Build with `make`
+6. Inspect `source/ui.c` and `source/ha_client.c`
 
 When making changes:
 

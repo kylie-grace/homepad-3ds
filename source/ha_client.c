@@ -223,10 +223,11 @@ static bool http_request_json(const AppState* app, HTTPC_RequestMethod method, c
             return false;
         }
 
+        /* TLS verification is disabled intentionally for trusted-LAN/self-signed setups. */
         httpcSetSSLOpt(&context, SSLCOPT_DisableVerify);
         httpcSetKeepAlive(&context, HTTPC_KEEPALIVE_ENABLED);
         snprintf(auth, sizeof(auth), "Bearer %s", app->config.access_token);
-        httpcAddRequestHeaderField(&context, "User-Agent", "HomePad/0.1 (Nintendo 3DS)");
+        httpcAddRequestHeaderField(&context, "User-Agent", "HomePad/0.2.0 (Nintendo 3DS)");
         httpcAddRequestHeaderField(&context, "Authorization", auth);
         httpcAddRequestHeaderField(&context, "Accept", "application/json");
         httpcAddRequestHeaderField(&context, "Connection", "Keep-Alive");
