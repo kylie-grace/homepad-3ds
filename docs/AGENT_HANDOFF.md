@@ -152,12 +152,19 @@ Current notable commits:
 
 - `b07a962` Initial HomePad 3DS dashboard
 - `5b5c2d5` Add MIT license
+- `143877a` Tighten audit follow-up docs
 
 Remote:
 
 - `origin` -> `https://github.com/kylie-grace/homepad-3ds.git`
 
 The remote was switched to HTTPS because GitHub CLI auth worked but SSH push failed due to missing usable GitHub SSH key configuration on this machine.
+
+Current working tree note:
+
+- `AUDIT.md` is present in the repo root as an untracked review artifact
+- audit-driven doc cleanup is committed
+- deeper follow-up work from the audit has not started yet
 
 ## Known Limitations
 
@@ -175,11 +182,11 @@ The remote was switched to HTTPS because GitHub CLI auth worked but SSH push fai
 
 High-value next steps:
 
-1. Add utility pages for printers, traffic, or media
-2. Deepen climate support with presets and richer mode handling
-3. Add screenshot assets and polish repo presentation
-4. Add CI or at least documented release packaging steps
-5. Test on real hardware and adjust touch target sizing if needed
+1. Decide whether `AUDIT.md` should be committed or kept local
+2. Test on real hardware and validate polling/action responsiveness
+3. Add utility pages for printers, traffic, or media
+4. Deepen climate support with presets and richer mode handling
+5. Add CI when a verified devkitPro workflow is available
 
 ## If Another Agent Picks This Up
 
