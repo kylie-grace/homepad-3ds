@@ -35,13 +35,11 @@ PASS HomePad build artifacts created
 
 ## Runtime Proof
 
-This stack does not prove that the app renders in an emulator. It proves the firmware artifact is reproducibly built. Runtime proof still needs one of these:
+This stack does not prove that the app renders in an emulator. It proves the firmware artifact is reproducibly built. Runtime proof is recorded separately in:
 
-- a 3DS emulator/container path that can run the official devkitPro hello-world `.3dsx` first;
-- a packaged CIA/CXI build target and emulator install test;
-- physical 3DS homebrew launch with `sdmc:/3ds/homepad/config.json`.
-
-If the emulator cannot run the official devkitPro sample, HomePad runtime screenshots from that emulator are not meaningful yet.
+```text
+docs/EMULATOR_VERIFICATION.md
+```
 
 ## 2026-07-02 Run
 
@@ -62,4 +60,21 @@ Docker-produced artifacts were copied to the untracked local folder:
 docker-artifacts/artifacts/
 ```
 
-This confirms the Portainer/Docker build gate works from Gitea commit `d703daa`. The remaining blocker is still runtime launch/rendering in an emulator or on physical 3DS hardware.
+This confirmed the Portainer/Docker build gate worked from Gitea commit `d703daa`.
+
+## 2026-07-02 Runtime-Fix Run
+
+After the Azahar MSYS2 launch/rendering fixes, the same Docker API test was run again from pushed Gitea commit `d14c848`.
+
+Result:
+
+```text
+d14c848
+PASS config/homepad.config.template.json: 5 rooms, 18 utility entities
+PASS config/example_config.json: 5 rooms, 18 utility entities
+built ... homepad.smdh
+built ... homepad.3dsx
+PASS HomePad build artifacts created
+```
+
+This confirms the current Gitea revision still passes the repeatable Docker build gate after the emulator runtime fixes.
