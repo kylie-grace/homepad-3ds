@@ -125,10 +125,15 @@ bool config_load(AppConfig* config, const char* path) {
     }
 
     jsmn_parser parser;
-    jsmntok_t tokens[CONFIG_TOKEN_CAPACITY];
+    jsmntok_t* tokens = (jsmntok_t*)calloc(CONFIG_TOKEN_CAPACITY, sizeof(jsmntok_t));
+    if (!tokens) {
+        free(json);
+        return false;
+    }
     jsmn_init(&parser);
     int token_count = jsmn_parse(&parser, json, (unsigned int)size, tokens, CONFIG_TOKEN_CAPACITY);
     if (token_count < 1 || tokens[0].type != JSMN_OBJECT) {
+        free(tokens);
         free(json);
         return false;
     }
@@ -173,6 +178,8 @@ bool config_load(AppConfig* config, const char* path) {
         }
     }
 
+    bool loaded = config->base_url[0] != '\0' && config->access_token[0] != '\0';
+    free(tokens);
     free(json);
-    return config->base_url[0] != '\0' && config->access_token[0] != '\0';
+    return loaded;
 }

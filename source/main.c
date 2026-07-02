@@ -54,7 +54,7 @@ static void exit_services(void) {
 }
 
 int main(int argc, char** argv) {
-    AppState app;
+    static AppState app;
     memset(&app, 0, sizeof(app));
     app.page = PAGE_OVERVIEW;
     app.focused_button = 0;

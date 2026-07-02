@@ -103,7 +103,7 @@ static void draw_char(Canvas* canvas, int x, int y, char c, int scale, Color col
     for (int row = 0; row < 8; row++) {
         for (int col = 0; col < 8; col++) {
             if (font8x8_basic[glyph][row] & (1u << col)) {
-                fill_rect(canvas, x + col * scale, y + row * scale, scale, scale, color);
+                fill_rect(canvas, x + (7 - col) * scale, y + row * scale, scale, scale, color);
             }
         }
     }

@@ -16,9 +16,17 @@ The build produces `homepad.3dsx`, `homepad.elf`, and `homepad.smdh`.
 
 ## Azahar Result
 
-Azahar 2125.1.3 was launched from `F:\Azahar\azahar-windows-msvc-2125.1.3\azahar.exe` with the built `homepad.3dsx`.
+Azahar 2125.1.3 MSYS2 was installed under:
 
-The emulator accepted the file but did not reach a visible app frame. It remained on the launch overlay or a black render surface. The same behavior reproduced with the official devkitPro `graphics/printing/hello-world` `.3dsx` example, so the current blocker appears to be Azahar's loose `.3dsx` homebrew path in this local emulator setup rather than HomePad-specific startup code.
+```text
+F:\Azahar\azahar-windows-msys2-2125.1.3\
+```
+
+The official devkitPro `graphics/printing/hello-world` `.3dsx` example launches and renders in this emulator build. HomePad also launches and renders a readable dashboard frame after two runtime fixes:
+
+- `AppState` is stored statically instead of on the 3DSX stack.
+- `config_load()` stores JSON parse tokens on the heap instead of on the 3DSX stack.
+- Font glyph columns are flipped to match `font8x8_basic` bit order on the 3DS framebuffer.
 
 Captured proof images are intentionally untracked and live at:
 
@@ -26,6 +34,10 @@ Captured proof images are intentionally untracked and live at:
 docs/screenshots/
 ```
 
-## Follow-Up
+The primary passing screenshot is:
 
-For emulator proof of the rendered dashboard, use a 3DS emulator/build path that can run devkitPro `.3dsx` homebrew examples successfully, or add a packaged CIA/CXI build target once a suitable packager is available in the toolchain.
+```text
+docs/screenshots/azahar-msys2-homepad-readable.png
+```
+
+This proves the app gets past launch, initializes graphics/config, and renders the fallback dashboard in Azahar. Live Home Assistant service calls still require a real `sdmc:/3ds/homepad/config.json` with a valid token.
