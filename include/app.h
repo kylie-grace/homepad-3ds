@@ -12,6 +12,7 @@
 #define HA3DS_MAX_ROOM_HIGHLIGHTS 6
 #define HA3DS_MAX_QUICK_ACTIONS 12
 #define HA3DS_MAX_FAVORITES 8
+#define HA3DS_MAX_UTILITY_ENTITIES 20
 #define HA3DS_MAX_UI_BUTTONS 48
 
 #define HA3DS_STR_SMALL 32
@@ -43,6 +44,8 @@ typedef struct {
     char favorite_entities[HA3DS_MAX_FAVORITES][HA3DS_STR_MEDIUM];
     int quick_action_count;
     char quick_action_entities[HA3DS_MAX_QUICK_ACTIONS][HA3DS_STR_MEDIUM];
+    int utility_count;
+    char utility_entities[HA3DS_MAX_UTILITY_ENTITIES][HA3DS_STR_MEDIUM];
     int room_count;
     RoomConfig rooms[HA3DS_MAX_ROOMS];
 } AppConfig;
@@ -90,7 +93,8 @@ typedef enum {
     PAGE_PEOPLE = 2,
     PAGE_WEATHER = 3,
     PAGE_QUICK = 4,
-    PAGE_COUNT = 5
+    PAGE_UTILITIES = 5,
+    PAGE_COUNT = 6
 } PageId;
 
 typedef enum {

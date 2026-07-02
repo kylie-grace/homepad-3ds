@@ -152,6 +152,7 @@ bool config_load(AppConfig* config, const char* path) {
     parse_string_array(json, tokens, json_find_key(json, tokens, 0, "people_entities"), config->people_entities, HA3DS_MAX_PEOPLE, &config->person_count);
     parse_string_array(json, tokens, json_find_key(json, tokens, 0, "favorite_entities"), config->favorite_entities, HA3DS_MAX_FAVORITES, &config->favorite_count);
     parse_string_array(json, tokens, json_find_key(json, tokens, 0, "quick_action_entities"), config->quick_action_entities, HA3DS_MAX_QUICK_ACTIONS, &config->quick_action_count);
+    parse_string_array(json, tokens, json_find_key(json, tokens, 0, "utility_entities"), config->utility_entities, HA3DS_MAX_UTILITY_ENTITIES, &config->utility_count);
 
     int rooms_index = json_find_key(json, tokens, 0, "rooms");
     if (rooms_index >= 0 && tokens[rooms_index].type == JSMN_ARRAY) {

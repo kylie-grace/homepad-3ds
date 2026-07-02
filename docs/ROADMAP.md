@@ -5,12 +5,13 @@ This roadmap reflects the current HomePad state after the initial public release
 ## Completed
 
 - Native 3DS dual-screen UI shell
-- Config-driven overview, room, people, weather, and quick pages
+- Config-driven overview, room, people, weather, quick, and utilities pages
 - Home Assistant REST polling
-- Basic actions for `light`, `switch`, `fan`, `scene`, and `script`
+- Basic actions for `light`, `switch`, `fan`, `scene`, `script`, and `climate`
 - Release packaging and public GitHub release
 - Repo handoff documentation
 - Initial runtime hardening
+- Homelab-backed default config template for traffic, printers, weather, family lights, media, and ops status
 
 ## Next
 
@@ -23,18 +24,18 @@ Highest priority:
 - Confirm touch target sizing and text readability on-device
 - Validate room/action flows with a real Home Assistant instance
 
-### 2. Utility Pages
+### 2. Utility Depth
 
 Target:
 
-- Expand beyond rooms and quick actions for utility-heavy dashboards
+- Expand the generic utilities page into richer summaries when the base app has been validated on hardware
 
 Likely additions:
 
-- printers page
-- media page
-- traffic/commute page
-- generic utility page fed by config entities
+- printer-specific progress formatting
+- media player summaries
+- traffic/commute thresholds
+- homelab service health rollups
 
 ### 3. Better Presentation
 

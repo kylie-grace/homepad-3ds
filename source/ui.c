@@ -36,7 +36,7 @@ static const Color C_SCENE = {195, 145, 224};
 static const Color C_SWITCH = {154, 206, 173};
 static const Color C_SENSOR = {220, 182, 119};
 
-static const char* PAGE_NAMES[PAGE_COUNT] = {"Overview", "Rooms", "People", "Weather", "Quick"};
+static const char* PAGE_NAMES[PAGE_COUNT] = {"Home", "Rooms", "Ppl", "Wx", "Quick", "Utils"};
 
 static void copy_ellipsized(char* dest, size_t dest_size, const char* src, int max_chars) {
     if (dest_size == 0) {
@@ -147,6 +147,16 @@ static const char* domain_tag(const EntityState* entity) {
     if (strcmp(entity->domain, "media_player") == 0) return "MD";
     if (strcmp(entity->domain, "person") == 0) return "PR";
     return "ET";
+}
+
+static bool entity_is_actionable(const EntityState* entity) {
+    if (!entity) return false;
+    return strcmp(entity->domain, "light") == 0 ||
+           strcmp(entity->domain, "switch") == 0 ||
+           strcmp(entity->domain, "fan") == 0 ||
+           strcmp(entity->domain, "climate") == 0 ||
+           strcmp(entity->domain, "scene") == 0 ||
+           strcmp(entity->domain, "script") == 0;
 }
 
 static void climate_summary(const EntityState* entity, char* out, size_t out_size) {
@@ -345,13 +355,38 @@ static void draw_quick_top(Canvas* top, AppState* app) {
     }
 }
 
+static void draw_utilities_top(Canvas* top, AppState* app) {
+    char line[128];
+    draw_text(top, 18, 18, "Utilities", 2, C_TEXT);
+    fill_rounded_rect(top, 16, 56, 368, 160, 10, C_PANEL_ALT);
+    snprintf(line, sizeof(line), "%d configured dashboard signals", app->config.utility_count);
+    draw_text(top, 28, 68, line, 1, C_SUB);
+
+    int y = 92;
+    for (int i = 0; i < app->config.utility_count && i < 7; i++) {
+        const EntityState* entity = app_find_entity(app, app->config.utility_entities[i]);
+        char label[40];
+        char value[36];
+        copy_ellipsized(label, sizeof(label), entity ? safe_name(entity, app->config.utility_entities[i]) : app->config.utility_entities[i], 24);
+        if (entity && entity->has_numeric_state) {
+            snprintf(value, sizeof(value), "%.0f%s", entity->numeric_state, entity->unit);
+        } else {
+            copy_ellipsized(value, sizeof(value), entity ? entity->state : "--", 18);
+        }
+        snprintf(line, sizeof(line), "%s: %s", label, value);
+        draw_text(top, 28, y, line, 1, entity && entity->is_available ? C_TEXT : C_WARN);
+        y += 18;
+    }
+}
+
 static void draw_nav_bar(Canvas* bottom, AppState* app) {
-    const int tab_w = 58;
+    const int tab_w = PAGE_COUNT > 5 ? 48 : 58;
+    const int tab_gap = 4;
     for (int i = 0; i < PAGE_COUNT; i++) {
-        int x = 8 + i * (tab_w + 4);
+        int x = 8 + i * (tab_w + tab_gap);
         Color panel = app->page == i ? C_ACCENT : C_PANEL;
         fill_rounded_rect(bottom, x, 200, tab_w, 28, 7, panel);
-        draw_text(bottom, x + 6, 210, PAGE_NAMES[i], 1, app->page == i ? C_BG : C_TEXT);
+        draw_text(bottom, x + 5, 210, PAGE_NAMES[i], 1, app->page == i ? C_BG : C_TEXT);
         add_button(app, x, 200, tab_w, 28, ACTION_PAGE, i, true);
     }
 }
@@ -376,7 +411,7 @@ static void draw_entity_button(Canvas* bottom, AppState* app, int x, int y, int 
     draw_text(bottom, x + 10, y + 10, domain_tag(entity), 1, focused ? accent : C_BG);
     draw_text(bottom, x + 32, y + 8, label, 1, focused ? C_BG : C_TEXT);
     draw_text(bottom, x + 32, y + 26, state, 1, focused ? C_BG : C_SUB);
-    add_button(app, x, y, w, h, ACTION_ENTITY, button_index, entity != NULL);
+    add_button(app, x, y, w, h, ACTION_ENTITY, button_index, entity_is_actionable(entity));
 
     if (entity && strcmp(entity->domain, "climate") == 0) {
         fill_rounded_rect(bottom, x + w - 42, y + 6, 16, 14, 4, focused ? C_BG : C_COOL);
@@ -463,6 +498,22 @@ static void draw_quick_bottom(Canvas* bottom, AppState* app) {
     }
 }
 
+static void draw_utilities_bottom(Canvas* bottom, AppState* app) {
+    draw_text(bottom, 12, 12, "Utilities", 2, C_TEXT);
+    if (app->config.utility_count == 0) {
+        draw_text(bottom, 12, 46, "No utility entities configured.", 1, C_SUB);
+        return;
+    }
+    for (int i = 0; i < app->config.utility_count && i < 6; i++) {
+        int row = i / 2;
+        int col = i % 2;
+        int x = 12 + col * 148;
+        int y = 44 + row * 52;
+        int button_index = app->button_count;
+        draw_entity_button(bottom, app, x, y, 136, 42, app->config.utility_entities[i], button_index);
+    }
+}
+
 static const char* action_entity_id(const AppState* app, const UiButton* button) {
     if (button->type != ACTION_ENTITY && button->type != ACTION_CLIMATE_DOWN && button->type != ACTION_CLIMATE_UP) {
         return NULL;
@@ -475,6 +526,9 @@ static const char* action_entity_id(const AppState* app, const UiButton* button)
     }
     if (app->page == PAGE_QUICK && button->value < app->config.quick_action_count) {
         return app->config.quick_action_entities[button->value];
+    }
+    if (app->page == PAGE_UTILITIES && button->value < app->config.utility_count) {
+        return app->config.utility_entities[button->value];
     }
     return NULL;
 }
@@ -589,6 +643,7 @@ void ui_render(AppState* app) {
         case PAGE_PEOPLE: draw_people_top(&top, app); break;
         case PAGE_WEATHER: draw_weather_top(&top, app); break;
         case PAGE_QUICK: draw_quick_top(&top, app); break;
+        case PAGE_UTILITIES: draw_utilities_top(&top, app); break;
         default: break;
     }
 
@@ -598,6 +653,7 @@ void ui_render(AppState* app) {
         case PAGE_PEOPLE: draw_people_bottom(&bottom, app); break;
         case PAGE_WEATHER: draw_weather_bottom(&bottom, app); break;
         case PAGE_QUICK: draw_quick_bottom(&bottom, app); break;
+        case PAGE_UTILITIES: draw_utilities_bottom(&bottom, app); break;
         default: break;
     }
 

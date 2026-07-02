@@ -58,6 +58,7 @@ Additional project docs:
 - People page for household presence
 - Weather page for current conditions, high/low, wind, and sunrise/sunset
 - Quick actions page for scenes, scripts, and favorite toggles
+- Utilities page for traffic, printer, media, and homelab status entities
 - Touch, D-pad, and button navigation
 - Climate buttons with mode cycling and touch `-` / `+` target adjustments
 - Domain-colored control badges for faster scanning
@@ -135,11 +136,12 @@ Recommended fields:
 - `people_entities`
 - `favorite_entities`
 - `quick_action_entities`
+- `utility_entities`
 - `rooms`
 
 Field reference:
 
-- `home_assistant_url`: Base URL for Home Assistant, example `https://homeassistant.local:8123`
+- `home_assistant_url`: Base URL for Home Assistant, example `http://homeassistant.local:8123`
 - `access_token`: Long-lived access token created in Home Assistant
 - `display_name`: Greeting name shown on the overview page
 - `poll_interval_seconds`: Refresh cadence, clamped to `10` through `300`
@@ -148,6 +150,7 @@ Field reference:
 - `people_entities`: List of `person.*` entities for the people page
 - `favorite_entities`: Overview page action buttons
 - `quick_action_entities`: Quick actions page entities
+- `utility_entities`: Utilities page entities for traffic, printers, media, and homelab status. Actionable domains still work; passive sensors render read-only.
 - `rooms`: List of room objects
 
 Security guidance:
@@ -172,6 +175,7 @@ Room object fields:
 3. Replace each entity ID with values from your own Home Assistant instance.
 4. Keep room names short so they fit on the bottom screen.
 5. Put high-value controls in `favorite_entities` and `control_entities`.
+6. Put status-heavy signals such as commute times, printer progress, media state, and homelab health in `utility_entities`.
 
 ## Controls
 
@@ -218,6 +222,7 @@ HomePad preserves these dashboard concepts:
 - Weather focus
 - Room summaries
 - Utility-oriented quick access
+- Current template entity choices are derived from the family dashboard redesign under `Y:\Development\homelab\home-assistant-family-dashboard-redesign`
 
 HomePad intentionally re-composes them for 3DS constraints:
 
@@ -252,6 +257,7 @@ HomePad intentionally re-composes them for 3DS constraints:
 - Weather detail quality depends on attributes exposed by your chosen weather entity
 - Sunrise and sunset currently come from `sun.sun` when available
 - Service payloads are intentionally simple and only cover common actions
+- The default template reflects the author's homelab dashboard entity names and should be adjusted for other Home Assistant installs
 
 ## Roadmap
 

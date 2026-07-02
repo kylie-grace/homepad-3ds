@@ -37,6 +37,7 @@ Implemented:
 - People page
 - Weather page
 - Quick actions page
+- Utilities page fed by `utility_entities`
 - REST polling via Home Assistant `/api/states`
 - Basic service calls for `light`, `switch`, `fan`, `scene`, `script`, `climate`
 - Climate mode cycling and target temperature adjustment
@@ -100,6 +101,7 @@ Config behavior:
 
 - trailing slashes are trimmed from `home_assistant_url`
 - `poll_interval_seconds` is clamped to `10..300`
+- `utility_entities` supports generic traffic, printer, media, and homelab status signals
 
 ### Networking
 
@@ -134,6 +136,15 @@ Current input behavior:
 - `X` force refresh
 - `START` exit
 
+Page model:
+
+- `Home`
+- `Rooms`
+- `People`
+- `Weather`
+- `Quick`
+- `Utils`
+
 Climate behavior:
 
 - Main climate tile action cycles HVAC mode
@@ -142,9 +153,11 @@ Climate behavior:
 ## Important Product Decisions
 
 - HomePad is inspired by the user’s Home Assistant dashboard information architecture, not its exact layout
+- Current source of dashboard truth is `Y:\Development\homelab\home-assistant-family-dashboard-redesign`
 - Do not attempt masonry/grid/Lovelace emulation
 - Favor reliability and large controls over feature breadth
 - v1 remains polling-based; no websocket requirement
+- Utility-heavy dashboard sections should flow through config before adding bespoke pages
 
 ## Git / Publishing State
 
@@ -153,6 +166,7 @@ Current notable commits:
 - `b07a962` Initial HomePad 3DS dashboard
 - `5b5c2d5` Add MIT license
 - `143877a` Tighten audit follow-up docs
+- current working line adds a config-driven utilities page and homelab-backed template entities
 
 Remote:
 
