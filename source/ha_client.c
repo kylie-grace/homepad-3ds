@@ -395,7 +395,7 @@ bool ha_poll_states(AppState* app) {
         app_set_status(app, "Out of memory");
         return false;
     }
-    if (!app->config_loaded || app->config.base_url[0] == '\0' || app->config.access_token[0] == '\0') {
+    if (!app->config_loaded || !app->network_ready || app->config.base_url[0] == '\0' || app->config.access_token[0] == '\0') {
         app_set_status(app, "Config incomplete");
         free(response);
         return false;
@@ -492,6 +492,10 @@ static bool climate_adjust_target(AppState* app, const EntityState* entity, floa
 }
 
 bool ha_trigger_entity(AppState* app, const char* entity_id) {
+    if (!app->network_ready) {
+        app_set_status(app, "Add real Home Assistant token");
+        return false;
+    }
     const EntityState* entity = app_find_entity(app, entity_id);
     if (!entity) {
         app_set_status(app, "Entity not loaded");
@@ -543,6 +547,10 @@ bool ha_trigger_entity(AppState* app, const char* entity_id) {
 }
 
 bool ha_climate_adjust(AppState* app, const char* entity_id, int direction) {
+    if (!app->network_ready) {
+        app_set_status(app, "Add real Home Assistant token");
+        return false;
+    }
     const EntityState* entity = app_find_entity(app, entity_id);
     if (!entity || strcmp(entity->domain, "climate") != 0) {
         app_set_status(app, "Climate entity not loaded");

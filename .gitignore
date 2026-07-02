@@ -1,5 +1,7 @@
 build/
 release/
+build-verification/
+docs/screenshots/
 *.3dsx
 *.elf
 *.smdh

@@ -128,6 +128,7 @@ typedef struct {
     bool quit_requested;
     bool service_busy;
     bool config_loaded;
+    bool network_ready;
     char status_line[HA3DS_STR_LARGE];
 } AppState;
 

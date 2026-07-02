@@ -9,6 +9,13 @@
 
 static u32* g_http_sharedmem = NULL;
 
+static bool config_has_live_credentials(const AppConfig* config) {
+    return config->base_url[0] != '\0' &&
+           config->access_token[0] != '\0' &&
+           strstr(config->access_token, "PASTE_") == NULL &&
+           strstr(config->access_token, "REPLACE") == NULL;
+}
+
 static void init_services(void) {
     gfxInitDefault();
     gfxSet3D(false);
@@ -59,8 +66,9 @@ int main(int argc, char** argv) {
         app_set_status(&app, "Add sdmc:/3ds/homepad/config.json");
     } else {
         app.config_loaded = true;
-        app_set_status(&app, "Config loaded");
-        ha_poll_states(&app);
+        app.network_ready = config_has_live_credentials(&app.config);
+        app.store.last_poll_ms = osGetTime();
+        app_set_status(&app, app.network_ready ? "Config loaded - press X to sync" : "Config template loaded - add HA token");
     }
 
     while (aptMainLoop() && !app.quit_requested) {
@@ -73,10 +81,15 @@ int main(int argc, char** argv) {
         ui_handle_input(&app, keys_down, keys_held, &touch);
 
         if ((keys_down & KEY_X) && app.config_loaded) {
-            ha_poll_states(&app);
+            if (app.network_ready) {
+                ha_poll_states(&app);
+            } else {
+                app_set_status(&app, "Add real Home Assistant token");
+            }
         }
 
         if (app.config_loaded &&
+            app.network_ready &&
             app.config.poll_interval_seconds > 0 &&
             app.config.base_url[0] != '\0' &&
             osGetTime() - app.store.last_poll_ms > (u64)app.config.poll_interval_seconds * 1000ULL) {
