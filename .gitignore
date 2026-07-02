@@ -2,6 +2,8 @@ build/
 release/
 build-verification/
 docs/screenshots/
+docker-artifacts/
+docker-*.log
 .codex-known_hosts
 .msys*
 *.3dsx
