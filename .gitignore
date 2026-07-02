@@ -2,6 +2,8 @@ build/
 release/
 build-verification/
 docs/screenshots/
+.codex-known_hosts
+.msys*
 *.3dsx
 *.elf
 *.smdh
