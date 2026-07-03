@@ -1,271 +1,251 @@
-# HomePad
+# HomePad 3DS
 
-HomePad is a native Nintendo 3DS Home Assistant dashboard built with devkitPro and libctru.
+Native Home Assistant controls for the Nintendo 3DS.
 
-Initial implementation and project scaffolding were developed with assistance from OpenAI Codex.
+![MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+![Nintendo 3DS](https://img.shields.io/badge/platform-Nintendo%203DS-7cc7ff.svg)
+![Home Assistant](https://img.shields.io/badge/Home%20Assistant-REST%20API-41bdf5.svg)
+![devkitPro](https://img.shields.io/badge/devkitPro-libctru-f6c56f.svg)
 
-It does not render Lovelace, does not emulate Home Assistant cards, and does not embed a web UI. Instead, it translates the same information priorities into a 3DS-native dual-screen app:
+![HomePad running in Azahar with live Home Assistant data](docs/assets/homepad-live-abode-cropped.png)
 
-- Top screen for passive status and page summaries
-- Bottom screen for stylus-friendly controls and navigation
-- REST polling only in v1
-- Large touch targets for old 3DS and new 3DS hardware
+HomePad is a dual-screen Home Assistant dashboard written as a real 3DS homebrew app. It does not render Lovelace, run a browser, or pretend your 3DS is a tablet. It translates the dashboard ideas that matter on a tiny handheld: glanceable status on the top screen, touch-friendly controls on the bottom screen, and fast access to the lights/scenes/rooms you actually use.
 
-## Quick Start
+The current visual direction is inspired by polished Abode-style Home Assistant dashboards: dark glassy panels, warm/cool status color, family presence, weather, and room controls, rebuilt with simple 3DS-native drawing primitives.
 
-Latest release:
+## What Works
 
-- `v0.2.0`: `https://github.com/kylie-grace/homepad-3ds/releases/tag/v0.2.0`
+- Live Home Assistant REST polling for configured entities
+- Overview with time, weather, indoor temperature, lights, active devices, and presence
+- Favorite controls on the bottom touch screen
+- Room pages with controls and highlight sensors
+- People, weather, quick action, and utility pages
+- Touch, D-pad, `A`, `L/R`, `X`, and `START` navigation
+- Action calls for `light`, `switch`, `fan`, `scene`, and `script`
+- Basic `climate` mode cycling and target temperature adjustment
+- Offline/setup status messages instead of hard crashes
+- Docker/Portainer-friendly build validation
+- Verified in Azahar against a live Home Assistant instance
 
-Download:
+## Quick Install
 
-- `homepad-v0.2.0-3dsx.zip`: `https://github.com/kylie-grace/homepad-3ds/releases/download/v0.2.0/homepad-v0.2.0-3dsx.zip`
+You need:
 
-QR install link:
-
-![HomePad v0.2.0 QR](docs/assets/homepad-v0.2.0-qr.png)
-
-- Scan on 3DS: `https://github.com/kylie-grace/homepad-3ds/releases/download/v0.2.0/homepad-v0.2.0-3dsx.zip`
+- A 3DS/2DS that can launch `.3dsx` homebrew
+- A Home Assistant instance reachable from the 3DS over your local network
+- A Home Assistant long-lived access token
+- A configured SD path at `sdmc:/3ds/homepad/`
 
 Install:
 
-1. Download the release zip.
-2. Copy `homepad.3dsx` to `sdmc:/3ds/homepad/homepad.3dsx`.
+1. Build or download `homepad.3dsx`.
+2. Copy it to `sdmc:/3ds/homepad/homepad.3dsx`.
 3. Copy `config/homepad.config.template.json` to `sdmc:/3ds/homepad/config.json`.
-4. Edit `config.json` with your Home Assistant URL, token, and entity IDs.
-5. Launch `HomePad` from the Homebrew Launcher.
+4. Edit `config.json` with your Home Assistant URL, token, people, rooms, favorites, and utility entities.
+5. Launch HomePad from the Homebrew Launcher.
 
-## Status
-
-Current state:
-
-- Native UI shell implemented
-- Config-driven pages implemented
-- Home Assistant REST polling implemented
-- Basic service calls implemented for `light`, `switch`, `fan`, `scene`, `script`, and `climate`
-- Build verified locally with current devkitPro `3ds-dev`
-
-Additional project docs:
-
-- `docs/AGENT_HANDOFF.md`
-- `docs/BUILD.md`
-- `docs/ROADMAP.md`
-
-## Features
-
-- Overview page with greeting, time, weather, indoor temperature, presence, and whole-home counts
-- Room pages with large touch buttons and room-level highlights
-- People page for household presence
-- Weather page for current conditions, high/low, wind, and sunrise/sunset
-- Quick actions page for scenes, scripts, and favorite toggles
-- Utilities page for traffic, printer, media, and homelab status entities
-- Touch, D-pad, and button navigation
-- Climate buttons with mode cycling and touch `-` / `+` target adjustments
-- Domain-colored control badges for faster scanning
-- Dark modern panel-based aesthetic inspired by Home Assistant dashboards without copying Lovelace layout
-
-## Project Layout
+Azahar/Citra-style emulators usually map `sdmc:/` to a virtual SD folder. For Azahar on Windows that may be:
 
 ```text
-homepad-3ds/
-├── Makefile
-├── README.md
-├── .gitignore
-├── config/
-│   ├── example_config.json
-│   └── homepad.config.template.json
-├── include/
-│   ├── app.h
-│   ├── font8x8_basic.h
-│   └── jsmn.h
-└── source/
-    ├── config.c
-    ├── font8x8_basic.c
-    ├── ha_client.c
-    ├── jsmn.c
-    ├── main.c
-    └── ui.c
+%APPDATA%\Azahar\sdmc\3ds\homepad\config.json
 ```
 
-## Build
+Write `config.json` as UTF-8 without a BOM. The embedded JSON parser expects the first byte to be `{`.
 
-Prerequisites:
+## Home Assistant Setup
 
-- devkitPro
-- devkitARM
-- libctru
-- `DEVKITPRO=/opt/devkitpro`
-- `DEVKITARM=/opt/devkitpro/devkitARM`
+Create a dedicated token:
 
-Build:
+1. In Home Assistant, open your user profile.
+2. Create a Long-Lived Access Token.
+3. Paste it into `access_token` in `config.json`.
+4. Rotate/delete that token if the SD card or device is lost.
 
-```sh
-export DEVKITPRO=/opt/devkitpro
-export DEVKITARM=/opt/devkitpro/devkitARM
-make
+Recommended entity choices:
+
+- `weather_entity`: a `weather.*` entity with temperature/forecast attributes
+- `indoor_temp_entity`: a whole-home or main-room temperature sensor
+- `people_entities`: `person.*` entities for household presence
+- `favorite_entities`: your daily toggles/scenes for the Home page
+- `quick_action_entities`: scripts/scenes such as all lights off, bedtime, movie mode
+- `utility_entities`: commute times, printer status, media state, homelab health, battery status
+- `rooms`: short room names plus up to 6 controls and 6 highlight signals per room
+
+HomePad polls the configured entity list individually with `/api/states/<entity_id>`. This is intentional: large Home Assistant installs can return huge `/api/states` payloads, and the 3DS is happier when it only tracks the dashboard entities it needs.
+
+## Config Example
+
+```json
+{
+  "home_assistant_url": "http://homeassistant.local:8123",
+  "access_token": "PASTE_DEDICATED_LONG_LIVED_ACCESS_TOKEN_HERE",
+  "display_name": "Home",
+  "poll_interval_seconds": 15,
+  "weather_entity": "weather.home",
+  "indoor_temp_entity": "sensor.living_room_temperature",
+  "people_entities": [
+    "person.alex",
+    "person.sam"
+  ],
+  "favorite_entities": [
+    "light.living_room",
+    "light.bedroom",
+    "fan.office",
+    "script.goodnight"
+  ],
+  "quick_action_entities": [
+    "script.all_lights_off",
+    "script.movie_mode",
+    "script.goodnight"
+  ],
+  "utility_entities": [
+    "sensor.commute_time",
+    "sensor.printer_status",
+    "binary_sensor.server_online"
+  ],
+  "rooms": [
+    {
+      "name": "Living",
+      "temp_sensor": "sensor.living_room_temperature",
+      "humidity_sensor": "sensor.living_room_humidity",
+      "control_entities": [
+        "light.living_room",
+        "fan.living_room"
+      ],
+      "highlight_entities": [
+        "sensor.living_room_temperature",
+        "media_player.tv"
+      ]
+    }
+  ]
+}
 ```
 
-Build output:
-
-- `homepad.3dsx`
-- `homepad.smdh`
-- `homepad.elf`
-
-## Install
-
-1. Copy `homepad.3dsx` to `sdmc:/3ds/homepad/homepad.3dsx`.
-2. Copy a config file to `sdmc:/3ds/homepad/config.json`.
-3. Launch from the Homebrew Launcher.
-
-## Configuration
-
-Start from:
-
-- `config/homepad.config.template.json`
-
-Minimal required fields:
-
-- `home_assistant_url`
-- `access_token`
-- `weather_entity`
-- `indoor_temp_entity`
-
-Recommended fields:
-
-- `display_name`
-- `people_entities`
-- `favorite_entities`
-- `quick_action_entities`
-- `utility_entities`
-- `rooms`
-
-Field reference:
-
-- `home_assistant_url`: Base URL for Home Assistant, example `http://homeassistant.local:8123`
-- `access_token`: Long-lived access token created in Home Assistant
-- `display_name`: Greeting name shown on the overview page
-- `poll_interval_seconds`: Refresh cadence, clamped to `10` through `300`
-- `weather_entity`: Weather entity used for overview and weather page
-- `indoor_temp_entity`: Whole-home indoor temperature sensor
-- `people_entities`: List of `person.*` entities for the people page
-- `favorite_entities`: Overview page action buttons
-- `quick_action_entities`: Quick actions page entities
-- `utility_entities`: Utilities page entities for traffic, printers, media, and homelab status. Actionable domains still work; passive sensors render read-only.
-- `rooms`: List of room objects
-
-Security guidance:
-
-- Use a dedicated Home Assistant long-lived access token for this app
-- Keep the 3DS and its SD card on a trusted network and in trusted hands
-- Rotate the token if the device or SD card is lost, shared, or repurposed
-- HTTPS certificate verification is currently disabled, so do not treat this as safe on hostile or public networks
-
-Room object fields:
-
-- `name`: Short room label
-- `temp_sensor`: Main temperature sensor for the room
-- `humidity_sensor`: Main humidity sensor for the room
-- `control_entities`: Up to 6 important control entities
-- `highlight_entities`: Up to 6 passive sensor or status entities
-
-## Example Config Workflow
-
-1. Copy `config/homepad.config.template.json`.
-2. Replace `home_assistant_url` and `access_token`.
-3. Replace each entity ID with values from your own Home Assistant instance.
-4. Keep room names short so they fit on the bottom screen.
-5. Put high-value controls in `favorite_entities` and `control_entities`.
-6. Put status-heavy signals such as commute times, printer progress, media state, and homelab health in `utility_entities`.
+See `config/homepad.config.template.json` and `config/example_config.json` for full-size examples and firmware limits.
 
 ## Controls
 
-- Touch: activate buttons on the bottom screen
-- D-pad up/down: move button focus
-- D-pad left/right: switch rooms while on the room page
-- `A`: activate focused button
-- `L` and `R`: cycle pages
-- `X`: force refresh
-- `START`: exit
+| Input | Action |
+| --- | --- |
+| Touch | Activate bottom-screen buttons |
+| D-pad up/down | Move focus |
+| D-pad left/right | Switch rooms on the Rooms page |
+| `A` | Activate focused button |
+| `L` / `R` | Change page |
+| `X` | Force Home Assistant refresh |
+| `START` | Exit |
 
-Climate interaction:
+Climate tiles:
 
-- Tap the main climate button to cycle HVAC mode
-- Tap the small `-` / `+` controls on a climate tile to adjust target temperature
+- Tap the main tile or press `A` to cycle HVAC mode.
+- Tap the small `-` / `+` controls to adjust target temperature.
 
 ## Supported Domains
 
-Fully actionable in v1:
+Actionable:
 
-- `light`
-- `switch`
-- `fan`
-- `scene`
-- `script`
-- `climate`
+- `light` -> `toggle`
+- `switch` -> `toggle`
+- `fan` -> `toggle`
+- `scene` -> `turn_on`
+- `script` -> `turn_on`
+- `climate` -> `set_hvac_mode` / `set_temperature`
 
-Read-only in v1:
+Read-only:
 
 - `weather`
 - `sensor`
 - `binary_sensor`
 - `person`
 - `media_player`
+- any configured entity from an unsupported domain
 
-## Design Translation
+## Build From Source
 
-HomePad preserves these dashboard concepts:
+Install devkitPro/devkitARM/libctru, then:
 
-- Greeting header
-- Large clock presence
-- Whole-home status cards
-- Presence summary
-- Weather focus
-- Room summaries
-- Utility-oriented quick access
-- Current template entity choices are derived from the family dashboard redesign under `Y:\Development\homelab\home-assistant-family-dashboard-redesign`
+```sh
+export DEVKITPRO=/opt/devkitpro
+export DEVKITARM=/opt/devkitpro/devkitARM
+make clean
+make
+```
 
-HomePad intentionally re-composes them for 3DS constraints:
+Expected artifacts:
 
-- No masonry or grid card emulation
-- No Lovelace card rendering
-- No embedded web view
-- Large, native controls instead of dense card layouts
+- `homepad.3dsx`
+- `homepad.elf`
+- `homepad.smdh`
 
-## Runtime Notes
+On Windows with MSYS2/devkitPro, run `make` from the MSYS2 shell so `DEVKITPRO`, `DEVKITARM`, and devkitPro tools are available.
 
-- If config is missing, the app stays usable enough to show setup instructions on-screen
-- Polling errors are shown in the status area instead of crashing the app
-- Base URLs are normalized to avoid trailing-slash mistakes
-- Poll interval is clamped for safer battery and network behavior
-- HTTPS certificate verification is currently disabled for local-network practicality
-- HTTP requests use an 8 second timeout and run inline, so a slow or unreachable Home Assistant instance can temporarily affect responsiveness
-- State polling caches up to `256` entities from `/api/states`; larger installs will not be fully represented yet
-- Climate mode and target temperature changes trigger a fast follow-up refresh
+## Docker / Portainer Build Gate
 
-## Validation
+The repo includes a one-shot Portainer stack for repeatable firmware builds:
 
-- Local builds are reproducible with devkitPro; see `docs/BUILD.md`
-- No CI workflow is checked in yet, so release verification is still manual
-- The expected manual verification flow is: build with `make`, copy to SD, then validate polling and service calls against a real Home Assistant instance
+```text
+docker/portainer-test-stack.yml
+```
+
+It validates the example configs, builds the firmware in `devkitpro/devkitarm`, and copies artifacts to a Docker volume.
+
+Manual equivalent:
+
+```sh
+sh tools/portainer-test.sh
+```
+
+## Validation Status
+
+Current verified state:
+
+- Config validation passes for both checked-in config files.
+- Local devkitPro build produces `.3dsx`, `.elf`, and `.smdh`.
+- Remote Docker/Portainer-style build gate passes from the pushed Gitea repo.
+- Azahar 2125.1.3 launches the app and renders live Home Assistant data.
+- Live proof showed `ONLINE`, all configured tracked entities reachable, real weather/temperature, presence, lights, and favorites.
+
+See:
+
+- `docs/BUILD.md`
+- `docs/EMULATOR_VERIFICATION.md`
+- `docs/PORTAINER_TESTING.md`
+
+## Security Notes
+
+- Use a dedicated Home Assistant long-lived token.
+- Treat the SD card as sensitive because it stores that token.
+- Keep this on a trusted LAN or VPN.
+- HTTPS certificate verification is disabled for local/self-signed Home Assistant setups, so do not use this on hostile/public networks.
+- HomePad is a hobby/homebrew dashboard, not a security boundary.
 
 ## Limitations
 
-- No websocket updates in v1
-- No camera snapshots yet
-- No real icon pack yet
-- Uses a built-in bitmap font and simple software UI primitives
-- Weather detail quality depends on attributes exposed by your chosen weather entity
-- Sunrise and sunset currently come from `sun.sun` when available
-- Service payloads are intentionally simple and only cover common actions
-- The default template reflects the author's homelab dashboard entity names and should be adjusted for other Home Assistant installs
+- Polling only; no WebSocket event stream yet.
+- No camera snapshots or Lovelace card rendering.
+- Uses a built-in bitmap font and software-drawn UI.
+- Service payloads are intentionally simple and cover common Home Assistant actions.
+- Weather detail quality depends on your chosen weather entity's attributes.
+- The template config includes the author's example entity names; replace them for your home.
 
-## Roadmap
+## Project Layout
 
-See `docs/ROADMAP.md`.
+```text
+homepad-3ds/
+|-- config/                 Example Home Assistant configs
+|-- docker/                 Portainer/Docker build gate
+|-- docs/                   Build, emulator, and test notes
+|-- include/                App structs and bundled headers
+|-- source/                 3DS app source
+|-- tools/                  Config/build validation helpers
+|-- Makefile
+`-- README.md
+```
 
-## Publishing Notes
+## Why?
 
-- Repo name: `homepad-3ds`
-- App name: `HomePad`
-- The codebase is ready for a public repository
-- `LICENSE` is present and the project is released under MIT
+Because Home Assistant dashboards are personal, Nintendo handhelds are delightful, and sometimes the right control surface for your house is a dual-screen console from 2011.
+
+## License
+
+MIT. Initial implementation and project scaffolding were developed with assistance from OpenAI Codex.

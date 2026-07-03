@@ -52,10 +52,17 @@ C:\Users\Kylie-Grace\AppData\Roaming\Azahar\sdmc\3ds\homepad\config.json
 
 That file is intentionally not tracked. It must be written as UTF-8 without a BOM because the embedded JSON parser expects the first byte to be `{`.
 
-The live Home Assistant proof screenshot is:
+The live Home Assistant proof screenshots are:
 
 ```text
 docs/screenshots/azahar-homepad-live-tracked-entities-polished.png
+docs/screenshots/azahar-homepad-abode-design-pass.png
 ```
 
-That run shows HomePad online against `http://192.168.1.212:8123`, with 51 tracked entities loaded, live weather/temperature, 6 tracked lights on, 4 active devices, 2/2 people home, and populated favorite controls.
+The README crop is committed at:
+
+```text
+docs/assets/homepad-live-abode-cropped.png
+```
+
+Those runs show HomePad online against `http://192.168.1.212:8123`, with tracked entities loaded, live weather/temperature, active lights/devices, household presence, and populated favorite controls.

@@ -95,3 +95,20 @@ PASS HomePad build artifacts created
 ```
 
 This confirms the live Home Assistant polling update still passes the repeatable Docker build gate from Gitea.
+
+## 2026-07-03 Design Run
+
+After the Abode-inspired native UI restyle, the Docker API test was run from pushed Gitea commit `5f1c435`.
+
+Result:
+
+```text
+5f1c435
+PASS config/homepad.config.template.json: 5 rooms, 18 utility entities
+PASS config/example_config.json: 5 rooms, 18 utility entities
+built ... homepad.smdh
+built ... homepad.3dsx
+PASS HomePad build artifacts created
+```
+
+This confirms the renderer restyle still passes the repeatable Docker build gate from Gitea.

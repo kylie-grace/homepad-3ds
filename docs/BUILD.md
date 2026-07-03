@@ -38,11 +38,13 @@ Expected outputs:
 3. Launch from the Homebrew Launcher on hardware.
 4. Confirm the overview page loads and the status pill reaches `ONLINE`.
 5. Force a refresh with `X` and confirm the status line updates successfully.
-6. Trigger one control each for a toggle domain and a climate entity.
-7. Disconnect Wi-Fi or break the URL once and confirm the app surfaces an offline error instead of crashing.
+6. Trigger one low-risk control for a toggle domain, or verify service availability without changing a real device.
+7. If you use climate controls, validate mode cycling and target changes on a safe/test climate entity first.
+8. Disconnect Wi-Fi or break the URL once and confirm the app surfaces an offline error instead of crashing.
 
 ## Runtime Limits To Recheck
 
 - Polling is synchronous and uses an 8 second HTTP timeout.
-- `/api/states` parsing currently stores up to `256` entities.
+- HomePad polls configured entities individually with `/api/states/<entity_id>`.
+- The configured tracked entity list is capped by `HA3DS_MAX_ENTITIES` (`256` by default).
 - HTTPS certificate verification is intentionally disabled for trusted-LAN compatibility.

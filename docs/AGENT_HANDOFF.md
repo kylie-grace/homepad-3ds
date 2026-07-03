@@ -38,7 +38,7 @@ Implemented:
 - Weather page
 - Quick actions page
 - Utilities page fed by `utility_entities`
-- REST polling via Home Assistant `/api/states`
+- REST polling via Home Assistant `/api/states/<entity_id>` for configured tracked entities
 - Basic service calls for `light`, `switch`, `fan`, `scene`, `script`, `climate`
 - Climate mode cycling and target temperature adjustment
 - Domain-colored button badges and control polish
@@ -115,7 +115,7 @@ Important implementation notes:
 - POST support requires HTTP shared memory, allocated in `source/main.c`
 - HTTPS certificate verification is currently disabled
 - request timeout is `8s`
-- polling caches up to `256` entities per refresh
+- polling tracks up to `256` configured entities per refresh
 - request timeout handling was added
 - polling/action failures are surfaced in the UI status line instead of crashing
 
@@ -152,7 +152,7 @@ Climate behavior:
 
 ## Important Product Decisions
 
-- HomePad is inspired by the user’s Home Assistant dashboard information architecture, not its exact layout
+- HomePad is inspired by the user's Home Assistant dashboard information architecture, not its exact layout
 - Current source of dashboard truth is `Y:\Development\homelab\home-assistant-family-dashboard-redesign`
 - Do not attempt masonry/grid/Lovelace emulation
 - Favor reliability and large controls over feature breadth
