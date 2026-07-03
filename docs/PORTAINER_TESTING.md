@@ -112,3 +112,19 @@ PASS HomePad build artifacts created
 ```
 
 This confirms the renderer restyle still passes the repeatable Docker build gate from Gitea.
+
+## 2026-07-03 README Polish Run
+
+After adding the public README, committed live screenshot crop, and setup notes, the Docker API test was run again from the pushed Gitea repo.
+
+Result:
+
+```text
+PASS config/homepad.config.template.json: 5 rooms, 18 utility entities
+PASS config/example_config.json: 5 rooms, 18 utility entities
+built ... homepad.smdh
+built ... homepad.3dsx
+PASS HomePad build artifacts created
+```
+
+This confirms the public-shareable repo docs state still clones and builds through the same Portainer-compatible path.
