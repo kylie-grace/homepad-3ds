@@ -78,3 +78,20 @@ PASS HomePad build artifacts created
 ```
 
 This confirms the current Gitea revision still passes the repeatable Docker build gate after the emulator runtime fixes.
+
+## 2026-07-02 Live-Entity Run
+
+After replacing whole-Home-Assistant state polling with tracked-entity polling, the Docker API test was run from pushed Gitea commit `3eb01b5`.
+
+Result:
+
+```text
+3eb01b5
+PASS config/homepad.config.template.json: 5 rooms, 18 utility entities
+PASS config/example_config.json: 5 rooms, 18 utility entities
+built ... homepad.smdh
+built ... homepad.3dsx
+PASS HomePad build artifacts created
+```
+
+This confirms the live Home Assistant polling update still passes the repeatable Docker build gate from Gitea.
