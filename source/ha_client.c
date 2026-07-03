@@ -10,8 +10,8 @@
 #include <string.h>
 #include <time.h>
 
-#define HA3DS_HTTP_BUFFER 262144
-#define HA3DS_JSON_TOKENS 8192
+#define HA3DS_HTTP_BUFFER 65536
+#define HA3DS_JSON_TOKENS 4096
 #define HTTP_TIMEOUT_NS 8000000000ULL
 #define HTTP_REDIRECT_LIMIT 4
 
@@ -180,19 +180,16 @@ static bool http_download(httpcContext* context, char* output, size_t output_siz
         *out_status = status;
     }
 
-    u32 content_size = 0;
-    httpcGetDownloadSizeState(context, NULL, &content_size);
-
     u32 total_read = 0;
     u32 read_size = 0;
-    u32 chunk_size = content_size > 0 && content_size < output_size ? content_size : 0x1000;
-    if (chunk_size == 0 || chunk_size >= output_size) {
-        chunk_size = output_size - 1;
-    }
 
     do {
-        if (total_read + chunk_size >= output_size) {
+        if (total_read + 1 >= output_size) {
             return false;
+        }
+        u32 chunk_size = (u32)(output_size - total_read - 1);
+        if (chunk_size > 0x1000) {
+            chunk_size = 0x1000;
         }
         read_size = 0;
         rc = httpcDownloadData(context, (u8*)output + total_read, chunk_size, &read_size);
@@ -334,7 +331,7 @@ static void parse_attributes(const char* json, const jsmntok_t* tokens, int attr
     parse_forecast(json, tokens, idx, entity);
 }
 
-static bool parse_states_payload(AppState* app, const char* json) {
+static bool parse_state_object(AppState* app, const char* json) {
     jsmn_parser parser;
     jsmntok_t* tokens = (jsmntok_t*)calloc(HA3DS_JSON_TOKENS, sizeof(jsmntok_t));
     if (!tokens) {
@@ -343,77 +340,158 @@ static bool parse_states_payload(AppState* app, const char* json) {
 
     jsmn_init(&parser);
     int token_count = jsmn_parse(&parser, json, (unsigned int)strlen(json), tokens, HA3DS_JSON_TOKENS);
-    if (token_count < 1 || tokens[0].type != JSMN_ARRAY) {
+    if (token_count < 1 || tokens[0].type != JSMN_OBJECT) {
         free(tokens);
         return false;
     }
 
-    app->store.count = 0;
-    int cursor = 1;
-    int limit = tokens[0].size < HA3DS_MAX_ENTITIES ? tokens[0].size : HA3DS_MAX_ENTITIES;
-    for (int i = 0; i < limit; i++) {
-        EntityState* entity = &app->store.entities[app->store.count];
-        entity_reset(entity);
-
-        int id_index = json_find_key(json, tokens, cursor, "entity_id");
-        int state_index = json_find_key(json, tokens, cursor, "state");
-        int attr_index = json_find_key(json, tokens, cursor, "attributes");
-        if (id_index >= 0) json_copy_string(json, &tokens[id_index], entity->entity_id, sizeof(entity->entity_id));
-        if (state_index >= 0) json_copy_string(json, &tokens[state_index], entity->state, sizeof(entity->state));
-        set_domain_from_entity(entity);
-        parse_attributes(json, tokens, attr_index, entity);
-
-        entity->is_available = strcmp(entity->state, "unavailable") != 0;
-        entity->numeric_state = strtof(entity->state, NULL);
-        entity->has_numeric_state = isdigit((unsigned char)entity->state[0]) || entity->state[0] == '-' || entity->state[0] == '+';
-        if (strcmp(entity->domain, "person") == 0) {
-            strncpy(entity->zone, entity->state, sizeof(entity->zone) - 1);
-            entity->zone[sizeof(entity->zone) - 1] = '\0';
-        }
-        if (strcmp(entity->domain, "weather") == 0) {
-            strncpy(entity->condition, entity->state, sizeof(entity->condition) - 1);
-            entity->condition[sizeof(entity->condition) - 1] = '\0';
-        }
-        if (entity->friendly_name[0] == '\0') {
-            strncpy(entity->friendly_name, entity->entity_id, sizeof(entity->friendly_name) - 1);
-            entity->friendly_name[sizeof(entity->friendly_name) - 1] = '\0';
-        }
-
-        app->store.count++;
-        cursor += (int)json_token_span(tokens, cursor);
+    int id_index = json_find_key(json, tokens, 0, "entity_id");
+    if (id_index < 0) {
+        free(tokens);
+        return false;
     }
 
-    app->store.loaded = true;
-    app->store.last_poll_ms = osGetTime();
+    char entity_id[HA3DS_STR_MEDIUM];
+    json_copy_string(json, &tokens[id_index], entity_id, sizeof(entity_id));
+    EntityState* entity = app_find_entity_mut(app, entity_id);
+    if (!entity) {
+        if (app->store.count >= HA3DS_MAX_ENTITIES) {
+            free(tokens);
+            return false;
+        }
+        entity = &app->store.entities[app->store.count++];
+    }
+    entity_reset(entity);
+    snprintf(entity->entity_id, sizeof(entity->entity_id), "%s", entity_id);
+
+    int state_index = json_find_key(json, tokens, 0, "state");
+    int attr_index = json_find_key(json, tokens, 0, "attributes");
+    if (state_index >= 0) json_copy_string(json, &tokens[state_index], entity->state, sizeof(entity->state));
+    set_domain_from_entity(entity);
+    parse_attributes(json, tokens, attr_index, entity);
+
+    entity->is_available = strcmp(entity->state, "unavailable") != 0;
+    entity->numeric_state = strtof(entity->state, NULL);
+    entity->has_numeric_state = isdigit((unsigned char)entity->state[0]) || entity->state[0] == '-' || entity->state[0] == '+';
+    if (strcmp(entity->domain, "person") == 0) {
+        strncpy(entity->zone, entity->state, sizeof(entity->zone) - 1);
+        entity->zone[sizeof(entity->zone) - 1] = '\0';
+    }
+    if (strcmp(entity->domain, "weather") == 0) {
+        strncpy(entity->condition, entity->state, sizeof(entity->condition) - 1);
+        entity->condition[sizeof(entity->condition) - 1] = '\0';
+    }
+    if (entity->friendly_name[0] == '\0') {
+        strncpy(entity->friendly_name, entity->entity_id, sizeof(entity->friendly_name) - 1);
+        entity->friendly_name[sizeof(entity->friendly_name) - 1] = '\0';
+    }
+
     free(tokens);
     return true;
 }
 
+static bool add_tracked_entity(char ids[][HA3DS_STR_MEDIUM], int* count, const char* entity_id) {
+    if (!entity_id || entity_id[0] == '\0') {
+        return false;
+    }
+    for (int i = 0; i < *count; i++) {
+        if (strcmp(ids[i], entity_id) == 0) {
+            return true;
+        }
+    }
+    if (*count >= HA3DS_MAX_ENTITIES) {
+        return false;
+    }
+    snprintf(ids[*count], HA3DS_STR_MEDIUM, "%s", entity_id);
+    (*count)++;
+    return true;
+}
+
+static int collect_tracked_entities(const AppConfig* config, char ids[][HA3DS_STR_MEDIUM]) {
+    int count = 0;
+    add_tracked_entity(ids, &count, config->weather_entity);
+    add_tracked_entity(ids, &count, "sun.sun");
+    add_tracked_entity(ids, &count, config->indoor_temp_entity);
+    for (int i = 0; i < config->person_count; i++) {
+        add_tracked_entity(ids, &count, config->people_entities[i]);
+    }
+    for (int i = 0; i < config->favorite_count; i++) {
+        add_tracked_entity(ids, &count, config->favorite_entities[i]);
+    }
+    for (int i = 0; i < config->quick_action_count; i++) {
+        add_tracked_entity(ids, &count, config->quick_action_entities[i]);
+    }
+    for (int i = 0; i < config->utility_count; i++) {
+        add_tracked_entity(ids, &count, config->utility_entities[i]);
+    }
+    for (int i = 0; i < config->room_count; i++) {
+        const RoomConfig* room = &config->rooms[i];
+        add_tracked_entity(ids, &count, room->temp_sensor);
+        add_tracked_entity(ids, &count, room->humidity_sensor);
+        for (int j = 0; j < room->control_count; j++) {
+            add_tracked_entity(ids, &count, room->control_entities[j]);
+        }
+        for (int j = 0; j < room->highlight_count; j++) {
+            add_tracked_entity(ids, &count, room->highlight_entities[j]);
+        }
+    }
+    return count;
+}
+
 bool ha_poll_states(AppState* app) {
     char* response = (char*)malloc(HA3DS_HTTP_BUFFER);
+    char(*tracked)[HA3DS_STR_MEDIUM] = (char(*)[HA3DS_STR_MEDIUM])calloc(HA3DS_MAX_ENTITIES, HA3DS_STR_MEDIUM);
     if (!response) {
         app_set_status(app, "Out of memory");
         return false;
     }
+    if (!tracked) {
+        app_set_status(app, "Out of memory");
+        free(response);
+        return false;
+    }
     if (!app->config_loaded || !app->network_ready || app->config.base_url[0] == '\0' || app->config.access_token[0] == '\0') {
         app_set_status(app, "Config incomplete");
+        free(tracked);
         free(response);
         return false;
     }
 
-    bool ok = http_request_json(app, HTTPC_METHOD_GET, "/api/states", NULL, response, HA3DS_HTTP_BUFFER);
-    if (ok) {
-        ok = parse_states_payload(app, response);
+    app->store.count = 0;
+    int requested = collect_tracked_entities(&app->config, tracked);
+    int loaded = 0;
+    int missing = 0;
+    for (int i = 0; i < requested; i++) {
+        char path[HA3DS_STR_LARGE];
+        snprintf(path, sizeof(path), "/api/states/%s", tracked[i]);
+        bool ok = http_request_json(app, HTTPC_METHOD_GET, path, NULL, response, HA3DS_HTTP_BUFFER);
+        if (ok && parse_state_object(app, response)) {
+            loaded++;
+        } else {
+            missing++;
+        }
     }
-    if (!ok) {
-        snprintf(app->store.last_error, sizeof(app->store.last_error), "Home Assistant poll failed");
+
+    if (loaded == 0) {
+        snprintf(app->store.last_error, sizeof(app->store.last_error), "Home Assistant poll failed (%d tracked)", requested);
         app_set_status(app, "Poll failed - check URL/token/network");
+        free(tracked);
+        free(response);
+        return false;
+    }
+
+    app->store.loaded = true;
+    app->store.last_poll_ms = osGetTime();
+    if (missing > 0) {
+        snprintf(app->store.last_error, sizeof(app->store.last_error), "%d tracked entities unavailable", missing);
+        app_set_status(app, "Updated %d/%d tracked entities", loaded, requested);
     } else {
         app->store.last_error[0] = '\0';
-        app_set_status(app, "Updated %d entities", app->store.count);
+        app_set_status(app, "Updated %d tracked entities", loaded);
     }
+    free(tracked);
     free(response);
-    return ok;
+    return true;
 }
 
 static const char* resolve_service(const char* domain) {

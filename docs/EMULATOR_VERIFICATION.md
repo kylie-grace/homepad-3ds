@@ -34,10 +34,28 @@ Captured proof images are intentionally untracked and live at:
 docs/screenshots/
 ```
 
-The primary passing screenshot is:
+The fallback-config passing screenshot is:
 
 ```text
 docs/screenshots/azahar-msys2-homepad-readable.png
 ```
 
-This proves the app gets past launch, initializes graphics/config, and renders the fallback dashboard in Azahar. Live Home Assistant service calls still require a real `sdmc:/3ds/homepad/config.json` with a valid token.
+This proves the app gets past launch, initializes graphics/config, and renders the fallback dashboard in Azahar.
+
+## Live Home Assistant Proof
+
+A real token-bearing config was also installed into Azahar's virtual SD path:
+
+```text
+C:\Users\Kylie-Grace\AppData\Roaming\Azahar\sdmc\3ds\homepad\config.json
+```
+
+That file is intentionally not tracked. It must be written as UTF-8 without a BOM because the embedded JSON parser expects the first byte to be `{`.
+
+The live Home Assistant proof screenshot is:
+
+```text
+docs/screenshots/azahar-homepad-live-tracked-entities-polished.png
+```
+
+That run shows HomePad online against `http://192.168.1.212:8123`, with 51 tracked entities loaded, live weather/temperature, 6 tracked lights on, 4 active devices, 2/2 people home, and populated favorite controls.

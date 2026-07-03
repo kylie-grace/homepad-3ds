@@ -176,11 +176,15 @@ static void climate_summary(const EntityState* entity, char* out, size_t out_siz
 }
 
 static void draw_panel_label(Canvas* canvas, int x, int y, const char* title, const char* value, const char* subtext, Color panel, Color accent) {
+    char value_text[24];
+    char subtext_text[24];
+    copy_ellipsized(value_text, sizeof(value_text), value ? value : "", 7);
+    copy_ellipsized(subtext_text, sizeof(subtext_text), subtext ? subtext : "", 13);
     fill_rounded_rect(canvas, x, y, 120, 70, 8, panel);
     draw_text(canvas, x + 10, y + 10, title, 1, C_SUB);
-    draw_text(canvas, x + 10, y + 28, value, 2, accent);
-    if (subtext && subtext[0]) {
-        draw_text(canvas, x + 10, y + 52, subtext, 1, C_SUB);
+    draw_text(canvas, x + 10, y + 28, value_text, 2, accent);
+    if (subtext_text[0]) {
+        draw_text(canvas, x + 10, y + 52, subtext_text, 1, C_SUB);
     }
 }
 
@@ -222,6 +226,10 @@ static void format_temp(char* out, size_t out_size, const EntityState* entity) {
     }
 }
 
+static bool has_metric(float value) {
+    return value > -9000.0f;
+}
+
 static void draw_overview_top(Canvas* top, AppState* app) {
     char line[64];
     char clock_text[16];
@@ -253,17 +261,13 @@ static void draw_overview_top(Canvas* top, AppState* app) {
 
     fill_rounded_rect(top, 16, 146, 380, 78, 10, C_PANEL_ALT);
     draw_text(top, 28, 158, "Whole Home", 1, C_SUB);
-    snprintf(line, sizeof(line), "Lights on: %d", app_count_domain_state(app, "light", "on"));
+    snprintf(line, sizeof(line), "Tracked lights: %d", app_count_domain_state(app, "light", "on"));
     draw_text(top, 28, 178, line, 2, C_TEXT);
     snprintf(line, sizeof(line), "Active devices: %d", app_count_active_devices(app));
     draw_text(top, 28, 200, line, 1, C_SUB);
     snprintf(line, sizeof(line), "People home: %d/%d", app_count_domain_state(app, "person", "home"), app->config.person_count);
     draw_text(top, 200, 200, line, 1, C_SUB);
 
-    if (weather) {
-        snprintf(line, sizeof(line), "Feels %.0fF  High %.0fF  Low %.0fF", weather->feels_like, weather->high, weather->low);
-        draw_text(top, 200, 178, line, 1, C_SUB);
-    }
     if (app->store.last_error[0]) {
         draw_text(top, 16, 228, app->store.last_error, 1, C_WARN);
     }
@@ -325,15 +329,33 @@ static void draw_people_top(Canvas* top, AppState* app) {
 static void draw_weather_top(Canvas* top, AppState* app) {
     const EntityState* weather = app_find_entity(app, app->config.weather_entity);
     const EntityState* sun = app_find_entity(app, "sun.sun");
-    char line[64];
+    char line[96];
+    char temp[16];
+    char feels[16];
+    char high[16];
+    char low[16];
+    char wind[16];
+    char rain[16];
     draw_text(top, 18, 18, "Weather", 2, C_TEXT);
     fill_rounded_rect(top, 16, 56, 368, 160, 10, C_PANEL_ALT);
     draw_text(top, 28, 70, weather ? safe_name(weather, "Weather") : "Weather", 1, C_SUB);
-    snprintf(line, sizeof(line), "%s %.0fF", weather ? weather->condition : "--", weather ? weather->temperature : 0.0f);
+    snprintf(temp, sizeof(temp), "%s", weather && has_metric(weather->temperature) ? "" : "--");
+    if (weather && has_metric(weather->temperature)) snprintf(temp, sizeof(temp), "%.0fF", weather->temperature);
+    snprintf(line, sizeof(line), "%s %s", weather ? weather->condition : "--", temp);
     draw_text(top, 28, 92, line, 2, C_TEXT);
-    snprintf(line, sizeof(line), "Feels %.0fF  High %.0fF  Low %.0fF", weather ? weather->feels_like : 0.0f, weather ? weather->high : 0.0f, weather ? weather->low : 0.0f);
+    snprintf(feels, sizeof(feels), "--");
+    snprintf(high, sizeof(high), "--");
+    snprintf(low, sizeof(low), "--");
+    if (weather && has_metric(weather->feels_like)) snprintf(feels, sizeof(feels), "%.0fF", weather->feels_like);
+    if (weather && has_metric(weather->high)) snprintf(high, sizeof(high), "%.0fF", weather->high);
+    if (weather && has_metric(weather->low)) snprintf(low, sizeof(low), "%.0fF", weather->low);
+    snprintf(line, sizeof(line), "Feels %s  High %s  Low %s", feels, high, low);
     draw_text(top, 28, 126, line, 1, C_SUB);
-    snprintf(line, sizeof(line), "Wind %.0f mph  Rain %.0f%%", weather ? weather->wind_speed : 0.0f, weather ? weather->precipitation_chance : 0.0f);
+    snprintf(wind, sizeof(wind), "--");
+    snprintf(rain, sizeof(rain), "--");
+    if (weather && has_metric(weather->wind_speed)) snprintf(wind, sizeof(wind), "%.0f mph", weather->wind_speed);
+    if (weather && has_metric(weather->precipitation_chance)) snprintf(rain, sizeof(rain), "%.0f%%", weather->precipitation_chance);
+    snprintf(line, sizeof(line), "Wind %s  Rain %s", wind, rain);
     draw_text(top, 28, 148, line, 1, C_SUB);
     snprintf(line, sizeof(line), "Sunrise %s", sun && sun->next_rising[0] ? sun->next_rising : "--");
     draw_text(top, 28, 176, line, 1, C_SUB);

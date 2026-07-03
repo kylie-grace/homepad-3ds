@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
     memset(&app, 0, sizeof(app));
     app.page = PAGE_OVERVIEW;
     app.focused_button = 0;
+    bool initial_poll_pending = false;
 
     init_services();
 
@@ -68,6 +69,7 @@ int main(int argc, char** argv) {
         app.config_loaded = true;
         app.network_ready = config_has_live_credentials(&app.config);
         app.store.last_poll_ms = osGetTime();
+        initial_poll_pending = app.network_ready;
         app_set_status(&app, app.network_ready ? "Config loaded - press X to sync" : "Config template loaded - add HA token");
     }
 
@@ -101,6 +103,12 @@ int main(int argc, char** argv) {
         gfxFlushBuffers();
         gfxSwapBuffers();
         gspWaitForVBlank();
+
+        if (initial_poll_pending) {
+            app_set_status(&app, "Syncing Home Assistant...");
+            ha_poll_states(&app);
+            initial_poll_pending = false;
+        }
     }
 
     exit_services();

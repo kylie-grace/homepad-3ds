@@ -10,9 +10,13 @@
     "person.emily"
   ],
   "favorite_entities": [
+    "light.couch_lamp_center_2",
+    "light.tv_lights_2",
+    "light.bedroom_2",
+    "light.front_door_2",
+    "light.twinkle_lights_power_switch",
     "fan.ac_plug_socket_toggle1",
     "fan.kitcken_fan",
-    "fan.dyson_pure_hot_cool_linktm",
     "script.kg_family_bedtime"
   ],
   "quick_action_entities": [
@@ -48,12 +52,12 @@
       "temp_sensor": "sensor.dyson_pure_hot_cool_linktm_temperature",
       "humidity_sensor": "weather.pirateweather",
       "control_entities": [
-        "light.couch_lamp_center",
+        "light.couch_lamp_center_2",
         "light.couch_lamp_left",
         "light.couch_lamp_right",
         "light.tv_lights_2",
-        "light.rgbicw_floor_lamp_basic_2",
-        "media_player.fire_tv"
+        "light.tv_lights_power_switch",
+        "light.rgbicw_floor_lamp_basic_2"
       ],
       "highlight_entities": [
         "sensor.dyson_pure_hot_cool_linktm_temperature",
@@ -82,10 +86,11 @@
       "humidity_sensor": "sensor.home_relative_humidity",
       "control_entities": [
         "light.deck_light_2",
+        "light.deck_light_power_switch",
         "light.front_door_2",
+        "light.front_door_power_switch",
         "light.twinkle_lights_power_switch",
-        "switch.deck_light_power_switch",
-        "switch.front_door_power_switch"
+        "switch.twinkle_lights_power_switch"
       ],
       "highlight_entities": [
         "sensor.kg_outdoor_temperature",
